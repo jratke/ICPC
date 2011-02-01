@@ -97,6 +97,9 @@ class Child:
         # How many more turns this child is dazed.
         self.dazed = 0
 
+        # Last location child attempted to pickup snow.
+        self.last_pickup = Point( 0, 0 )
+
 
 # Simple representation for a child's action
 class Move:
@@ -151,11 +154,22 @@ def moveToward( c, target, m ):
 
 
 # show height of thrown snowball for each step up to n steps.
-#def show_heights(h, n):
-#    for t in range(n+1):
-#        height = h - round((9 * t)/n)
-#        print height
-#
+def show_heights(h, n):
+    for t in range(n+1):
+        height = h - round((9 * t)/n)
+        print height
+
+def dist(dx, dy):
+    return math.sqrt(dx * dx + dy * dy)
+
+def can_c_hit_snowman_head(c, sx, sy, height):
+    dx = abs(c.pos.x - sx)
+    dy = abs(c.pos.y - sy)
+    steps = max(dx, dy)
+
+    # At time t/n, the entity moves to integer location 
+    # ( x1 + round( ( t ( x2 - x1 ) )/n ), y1 + round( ( t ( y2 - y1 ) )/n ) )
+
 
 ########################################################################################
 
@@ -213,6 +227,12 @@ while turnNum >= 0:
     for i in range( CCOUNT * 2 ):
         c = cList[ i ]
         
+        # Compute child color based on it's index.
+        if i < CCOUNT:
+            c.color = RED
+        else:
+            c.color = BLUE
+        
         # Can we see this child?        
         tokens = string.split( sys.stdin.readline() )
         if tokens[ 0 ] == "*":
@@ -223,12 +243,6 @@ while turnNum >= 0:
             c.pos.x = string.atoi( tokens[ 0 ] )
             c.pos.y = string.atoi( tokens[ 1 ] )
 
-            # Compute child color based on it's index.
-            if i < CCOUNT:
-                c.color = RED
-            else:
-                c.color = BLUE
-        
             # Read the stance, what the child is holding and how much
             # longer he's dazed.
             c.standing = ( tokens[ 2 ] == "S" )
@@ -272,7 +286,8 @@ while turnNum >= 0:
                              oy >= 0 and oy < SIZE and
                              ( ox != c.pos.x or oy != c.pos.y ) and
                              ground[ ox ][ oy ] == GROUND_EMPTY and
-                             height[ ox ][ oy ] > 0 ) :
+                             height[ ox ][ oy ] > 0 and
+                             (ox != c.last_pickup.x and oy != c.last_pickup.y) ):
                            sx = ox
                            sy = oy
                                
@@ -281,6 +296,7 @@ while turnNum >= 0:
                     if c.standing:
                         m.action = "crouch"
                     else:
+                        c.last_pickup = Point( sx, sy )
                         m.action = "pickup"
                         m.dest = Point( sx, sy )
 
@@ -298,13 +314,16 @@ while turnNum >= 0:
                         dx = cList[ j ].pos.x - c.pos.x
                         dy = cList[ j ].pos.y - c.pos.y
                         dsq = dx * dx + dy * dy
-                        if dsq < 8 * 8:
+                        # try a different one if already dazed as well.
+                        if dsq < 8 * 8 and cList[j].dazed == 0:
                             victimFound = 1
                             m.action = "throw"
                             # throw past the victim, so we will probably hit them
                             # before the snowball falls into the snow.
                             m.dest = Point( c.pos.x + dx * 2,
                                             c.pos.y + dy * 2 )
+                            # but if something's in the way, like a tree, 
+                            # or your own guy, then it doesnt make sense
                     j += 1
 
             # Try to run toward the destination.
