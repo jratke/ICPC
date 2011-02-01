@@ -73,11 +73,19 @@ class Point:
     def __init__( self, xv, yv ):
         self.x = xv
         self.y = yv
-
     def set( self, vx, vy ):
         self.x = vx
         self.y = vy
-
+    def __eq__(self, other):
+        if other == None:
+            return False
+        else:
+            return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        if other == None:
+            return True
+        else:
+            return self.__dict__ != other.__dict__
 
 # Simple representation for a child in the game.
 class Child:
