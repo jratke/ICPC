@@ -1,0 +1,99 @@
+
+
+
+
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>2011 ICPC Queue Challenge Example Players</title>
+</head>
+<body>
+
+<h1>Example Players</h1>
+
+<p>
+The <code>c++_example</code> and <code>java_example</code> directories
+contain sample players implemented in C++ and java.  The source code
+for these will demonstrate how a player is to interact with the game,
+and they may give you some ideas about how your own player could
+operate.  You can compile these players independently and then run
+them against each other in the game using a command like the
+following:
+</p>
+
+<pre>
+java -jar icypc.jar -player cpp c++_example/camper -player java -cp java_example Hunter
+</pre>
+
+<p>
+Source code for the java is stored in a <code>java_example</code>
+subdirectory and is given a matching package name.  Teams are reminded
+that submitted players implemented in Java cannot be organized this
+way; they must be defined in the default package.  The Java example
+has just been organized this way only to simplify distribution.
+</p>
+
+<h2>C++ Example Player</h2>
+
+<p>
+The C++ example player, camper, tries to build a snow fort near the
+player's starting corner.  Children on the camper team walk around the
+interior of the fort, creating snowballs from available snow.  They
+opportunistically throw the snowballs at children on the opposing team
+and pile the snowballs onto the fort wall when no targets are available.
+</p>
+
+<ul>
+<li> <a href="../c++_example/Const.h">Const.h</a> : Game-specific
+    constants used by the C++ player.
+<li> <a href="../c++_example/camper.cpp">camper.cpp</a> : Main file for
+the C++ player.
+</ul>
+
+<h2>Java Example Players</h2>
+
+<p>
+Two Java example players are provided.  The hunter player concentrates
+on hitting the opponent with snowballs.  Children roam around the
+field randomly, making snowballs and throwing them at children on the
+opposing team.  The java Planter player concentrates on building
+snowmen.  Children on the planter team constantly try to build new
+snowman at a location that's far from any existing snowman.
+</p>
+
+<ul>
+<li> <a href="../java_example/Const.java">Const.java</a> : Game-specific constants used
+    by both of the java players.
+<li> <a href="../java_example/Hunter.java">Hunter.java</a> : Main file for the java Hunter player.
+<li> <a href="../java_example/Planter.java">Planter.java</a> : Main file for the java Planter player.
+</ul>
+
+<h2>C# Example Player</h2>
+
+<p>
+The C# example player is an adaptation of the C++ camper player.
+Children on the camper team 
+try to build a snow fort in the corner of the field and throw
+snowballs at the opposing team when they get the chance.
+</p>
+
+<ul>
+<li> <a href="../csharp_example/Camper.cs">Camper.cs</a> : Main file for the C# camper
+implementation.
+</ul>
+
+<h2>Python Example Player</h2>
+
+<p>
+The python example player is an adaptation of the java Hunter player.
+Children on the hunter team roam around the field randomly, making
+snowballs and throwing them at children on the opposing team.
+</p>
+
+<ul>
+<li> <a href="../python_example/hunter.py">hunter.py</a> : Main file for the python player.
+</ul>
+
+</body></html>

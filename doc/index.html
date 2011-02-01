@@ -1,0 +1,130 @@
+
+
+
+
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>2011 ICPC Queue Challenge</title>
+</head>
+<body>
+
+<h2> Queue ICPC Challenge </h2>
+
+<p>
+ACM Queue Magazine is offering an online programming competition based
+on the 2009 International Collegiate Programming Competition (ICPC)
+Challenge problem. Participants will get to code a player and compete
+with others in the game of Capture. Preliminary matches during the
+one-month coding phase will let you know how well your player is
+doing. A final double-elimination competition among all the submitted
+players will decide whose player is best.
+<p>
+
+<p>
+Coding and preliminary matches will run from January 10, 2010 to the
+end of the day on February 6 (all times GMT).
+<p>
+
+<ul>
+<li> <a href="overview.html">Competition overview</a>
+
+<li> <a href="rules.html">Game rules</a>
+<li> <a href="examples.html">Example players</a>
+<li> <a href="environment.html">Player execution environment</a>
+<li> <a href="usage.html">Game usage instructions</a>
+<li> <a href="competition.html">Competition Model</a>
+</ul>
+
+<h2>Icy Projectile Challenge</h2>
+
+<p>
+The ICPC Challenge game, Icy Projectile Challenge, is played in an
+environment that looks something like the following figure.  A red
+player and a blue player compete on a snow-covered <var>31 &times;
+31</var> field.  Each player controls a group of children, who can
+pick up the snow, move it around, make snowballs, hurl them at each
+other, and stack snowballs to form snowmen.  Players earn points by
+placing snowmen strategically, and by hitting their opponents with
+snowballs.  The <a href="rules.html">game rules</a> describe how to
+control your team, how to score points and how to win.
+</p>
+
+<img src="game.png" alt="Game illustration" width=640 height=351/>
+
+<h2>Writing your Player</h2>
+
+<p>
+Your player will be implemented as a separate program, in C++, C#,
+Java or Python. You will interact with the game by reading information
+about the game world from standard input and writing your next move to
+standard output. The <a href="examples.html">sample players</a> can be
+a quick way for you to get started writing your player and interacting
+with the game. A more detailed description of
+the <a href="environment.html">execution environment</a> explains the
+input and output format for your player as well as other rules for
+what your player can do.
+</p>
+
+<h2>Running a Match</h2>
+
+<p>
+Once you have a player written, you can run it by starting up the game
+and pointing it to your player's executable. If you have written a
+player in C++, you can run it against one of the sample players using
+a command like:
+</p>
+
+<pre>
+java -jar icypc.jar -player cpp myPlayer -player java -cp java_example Hunter
+</pre>
+
+<p>
+If your player is implemented in Java, you can run it against one of
+the example players using a command like:
+</p>
+
+<pre>
+java -jar icypc.jar -player java -cp java_example Planter -player java MyPlayer 
+</pre>
+
+<p>
+The more detailed usage instructions describe more options for starting up the game, including how to run the 3D visualization, how to generate trace files and how to debug your player during execution.
+</p>
+
+<h2>Submitting your Player</h2>
+
+<p>
+During the coding phase, players can access the competition through the
+queue site
+at: <a href="http://queue.acm.org/icpc/">http://queue.acm.org/icpc/</a>
+From this page, participants will be able to register for the
+competition, login to the submission system, submit player code and
+see how they are doing in preliminary matches. The latest working
+submission is considered the participant's current player. The final
+tournament and the nightly preliminary matches will use the most
+recently submitted player code that successfully builds.
+</p>
+
+<p>
+All source code and supporting files for a player must be submitted at
+once. From the submission interface, select each source file that's
+part of your player, and then press the "Upload Files" button to
+upload the whole thing. If you forget to submit an important file, you
+will need to re-submit everything to have a working player.
+<p>
+
+
+<h2>Additional Information</h2>
+
+<p>
+The Queue ICPC Challenge
+website, <a href="http://queue.acm.org/icpc/">http://queue.acm.org/icpc/</a>,
+will provide regularly updated information during the coding phase of
+the competition. If corrections or clarifications are needed, they
+will be linked from here.
+</p>
+
+</body></html>

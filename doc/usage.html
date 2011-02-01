@@ -1,0 +1,282 @@
+
+
+
+
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>2011 ICPC Queue Challenge Usage Instructions</title>
+</head>
+<body>
+
+<h1>Usage Instructions</h1>
+
+<p>
+The game engine is implemented in Java and supports several
+command-line options to let the user run games with different players
+and with different output behavior.  Since players are implemented as
+separate executables, the developer is free to use any development
+environment to code the player behavior.  In principle, any
+programming language may be used to implement a player, but the
+submission site will only accept players written in C++ and Java.
+</p>
+
+<p>
+When you download the game distribution binary, you will receive a zip
+file containing a small directory structure for the game.  You can
+unpack this file to create an execution environment for the game.  The
+jar file, icypc.jar, contains the executable code for the game, and
+other subdirectories contain sample map files and example players
+implemented in C++ and Java.
+</p>
+
+<p>
+The icypc.jar file has the main game class (icpc.challenge.main.Game)
+defined as its entry point.  You can run matches by simply giving this
+jar file as the first argument to the Java interpreter.
+Alternatively, you can run other classes in icypc.jar by putting
+<code>icypc.jar</code> in your <code>CLASSPATH</code> and specifying other
+classes as the entry point.
+</p>
+
+
+<h2>Making Something Happen</h2>
+
+<p>
+If you just want to see a game running, you can unpack the game
+distribution binary and run the following command from the top-level
+directory.  This will start the game with a basic 2D view of the field
+and with two example Java players competing against each other.
+</p>
+
+<pre>
+java -jar icypc.jar -player java -cp java_example Hunter \
+     -player java -cp java_example Planter
+</pre>
+
+<h2>Game Visualization</h2>
+
+<p>
+The game distribution binary contains a basic 2D visualization and a
+3D visualization using JOGL.  The basic 2D visualization
+is intended to help the developer see what's going on in the
+game, what regions of the field are visible to the player and what
+actions each child is performing.
+</p>
+
+<p>
+If you'd like to try out the 3D visualization, include icypc.jar in
+your CLASSPATH (along with jar files needed for JOGL).  You should
+then be able to run a game with the -view 3D option.
+</p>
+
+<pre>
+java icpc.challenge.main.Game -player java -cp java_example Hunter \
+     -player java -cp java_example Planter -view 3D
+</pre>
+
+<h2>Running a C++ Player</h2>
+
+<p>
+Let's say you've implemented a player in C++.  You've compiled your
+player to an executable called <code>bill</code>.  You can run this
+player as the red player using the following command line.  You will
+be playing against a copy of the example player, Hunter.
+</p>
+
+<pre>
+java -jar icypc.jar -player cpp bill -player java -cp java_example Hunter
+</pre>
+
+<h2>Running a Java Player</h2>
+
+<p>
+Let's say you've implemented a player in Java.  You've compiled your
+player to a class called <code>Lucy</code>.   You can run this player as
+the blue player using the following command line.  Here, you will be playing
+against a copy of the Java example player, Planter.
+</p>
+
+<pre>
+java -jar icypc.jar -player java -cp java_example Planter -player java Lucy
+</pre>
+
+<p>
+Remember that Java players are expected to reside in the default Java
+package.  The command-line syntax <code>-player java -cp</code> lets
+you specify a class path for a java player.  We have to do this with
+the example java players, since they don't have a package prefix, but
+they are located under the java_example directory.
+</p>
+
+<h2>Running an Arbitrary Player</h2>
+
+<p>
+The above examples of running a player as a C++ executable or as a
+Java program are really just special cases of the same mechanism.  The
+game engine's <code>-player pipe</code> option gives a more general
+mechanism for running the player executable.  This method for starting
+up a player can let you pass in additional command-line parameters to
+the player if these are useful during development.  
+</p>
+
+<p>
+The <code>pipe</code> keyword is followed by an integer <var>n</var>.  The
+next <var>n</var> command-line arguments are taken as the command line
+for the executable that is to serve as the player.  For example, the
+following command line could be used to run the C++ program,
+<code>bill</code>, as the blue player and the Java class, <code>Lucy</code>,
+as the red player.
+</p>
+
+<pre>
+java -jar icypc.jar -player pipe 2 java Lucy -player pipe 1 bill
+</pre>
+
+<h2>Running a C# or Python Player</h2>
+
+<p>
+The game engine doesn't have explicit support for C# and Python, but
+you can use the <code>-player pipe</code> option to run players in
+these languages.  For example, if you wanted to run a C# player via
+mono against a python player, you might start the game like this:
+</p>
+
+<pre>
+java -jar icypc.jar -player pipe 2 mono playerOne.exe -player pipe 2 python playerTwo.py
+</pre>
+
+<h2>Recording a Game</h2>
+
+<p>
+If you want, you can send a record of game events to a trace file for
+later viewing.  The following command will create a rather large trace
+file called <code>trace.txt</code> containing the sequence of game events.
+</p>
+
+<pre>
+java -jar icypc.jar -player java Lucy -player cpp bill \
+     -view trace trace.txt
+</pre>
+
+<p>
+After you generate a trace file, you can play it back with a trace
+player.  If you've added icypc.jar to your CLASSPATH, then the
+following command will play back this trace.
+</p>
+
+<pre>
+java icpc.challenge.view.TracePlayer -trace trace.txt
+</pre>
+
+<h2>Recording a Turn History</h2>
+
+<p>
+The trace file generated by the <code>-view trace</code> option records game
+event information used by the game's visualization components.  It
+omits some of the information that is available to the players and
+includes extra information that players don't get to see.  The <code>-view
+turns</code> option is intended to capture the sequence of messages
+exchanged between the game and its two players.  Running a game like
+the following will create a turn history file called <code>turns.txt</code> that
+contains the sequence of states as seen by the red player.  In the
+turn history, each state is followed by the move response that was
+received from each of the players.
+</p>
+
+<pre>
+java -jar icypc.jar -player java Lucy -player cpp bill -view turns turns.txt
+</pre>
+
+<p>
+A turn history is intended to help developers debug their players.  The
+file reports game states and moves as seen by the game engine.  The
+re-mapping of colors, game locations and directions normally done when
+interacting with the blue player is not apparent in this report.
+</p>
+
+<p>
+A game can be visualized using its turn file.  Since the turn file
+omits some of the information that's included in a trace, the
+visualization will not be as smooth and it will not include all
+effects.  However, it can still be useful to give the developer a
+sense of what was going on at a particular point in the game.  If
+you've added <code>icypc.jar</code> to your <code>CLASSPATH</code>, The
+following command will play back a game from its turn file.
+</p>
+
+<pre>
+java icpc.challenge.view.TurnPlayer -turns turns.txt
+</pre>
+
+<h2>Alternative Maps</h2>
+
+<p>
+By default, the game uses a map with five trees near the center of the
+field.  In the preliminary matches and in the final tournament, tree
+arrangement may vary from match to match.  You can try out your player
+with alternative tree configurations using the <code>-map</code>.  This
+option requires the name of a text file containing a <var>31 &times;
+31</var> image of the initial tree configurations.  A period encodes a
+space without a tree and a capital 'T' encodes a space with a tree.
+To run a match with an alternative map, you can use a command like:
+</p>
+
+<pre>
+java -jar icypc.jar -player java Lucy -player cpp bill -map maps/map4.txt
+</pre>
+
+<p>
+The <code>maps</code> subdirectory in the distribution binary contains
+a few example maps for you to try.  You can build your own using a
+text editor.  Unlike the player input format described in
+<a href="environment.html#player.input"/>Player Input</a>, the map
+format orients the map like it will appear in the game, with the
+origin at row 31, column 1 (counting from 1), the <var>X</var> axis
+going to the right and the <var>Y</var> axis pointing up.
+</p>
+
+<h2>Reduced View Size</h2>
+
+The default view may be too large for users with small screens.  To
+help with this, the game, the trace player and the turn player all
+accept a <code>-view simple80</code> and a <code>-view simple60</code> option.
+These options create a view of the game that is 80 percent or 60
+percent of the width and height of the standard view.  For example,
+the following will show a match between the two example Java players
+using a reduced view size.
+</p>
+
+<pre>
+java -jar icypc.jar -player java -cp java_example Hunter -player java \
+     -cp java_example Planter -view simple60
+</pre>
+
+<h2>Synchronous Operation</h2>
+
+<p>
+For debugging, players can be started in synchronous mode.  This
+forces the game engine to wait for every move from the player before
+simulating the next game turn.  The following table shows the variants
+of the <code>-player</code> option that can be used to request synchronous
+operation with a particular player.
+</p>
+
+<table border=1>
+<tr>
+<td>Real-Time Response </td> <td> Synchronous Mode </td>
+</tr>
+<tr>
+<td>-player java </td> <td> -player syncjava </td>
+</tr>
+<tr>
+<td>-player cpp </td> <td> -player synccpp </td>
+</tr>
+<tr>
+<td>-player pipe </td> <td> -player syncpipe </td>
+</tr>
+</table>
+
+</body></html>
