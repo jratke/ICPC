@@ -178,6 +178,54 @@ def can_c_hit_snowman_head(c, sx, sy, height):
     # At time t/n, the entity moves to integer location 
     # ( x1 + round( ( t ( x2 - x1 ) )/n ), y1 + round( ( t ( y2 - y1 ) )/n ) )
 
+# is the path one that can be walked and/or thrown
+# if there is a tree or child in the way, it can't.
+def good_path(x1,y1,x2,y2):
+    pass
+
+def possible_movement(c):
+    if c.standing:
+        options = [(-2,0),(-1,0,),(-1,-1),(0,2),(0,1),(1,1),(1,0),(2,0),(1,-1),(0,-1),(0,-2),(-1,-1)]
+        return options[int(round(rnd.uniform(0,11)))]
+    else:
+        options = [(-1,0),(0,1),(1,0),(0,-1)]
+        return options[int(round(rnd.uniform(0,3)))]
+
+# is location px, py valid (on the board)
+# and available to move to?
+#  px = c.pos.x + dx
+#  py = c.pos.y + dy
+def can_move(px, py):
+    if (px >= 0 and px < SIZE and
+        py >= 0 and py < SIZE and
+        # no trees or children
+        height[px][py] < 6 and
+        ground[px][py] != GROUND_TREE and
+        ground[px][py] != GROUND_CHILD and
+        ground[px][py] != GROUND_SMR and     # these last two probably redundant
+        ground[px][py] != GROUND_SMB):
+        return True
+    else:
+        return False
+
+def planned_movement(c, m):
+    valid = False
+    p = (0,0)
+
+    while valid == False:
+        p = possible_movement(c)
+        if can_move(c.pos.x + p[0], c.pos.y + p[1]):
+            valid = True
+        else:
+            valid = False
+
+    if c.standing:
+        m.action = "run"
+        m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])
+    else:
+        m.action = "crawl"
+        m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])        
+
 
 ########################################################################################
 
@@ -271,20 +319,21 @@ while turnNum >= 0:
         c = cList[ i ]
         m = Move()
 
-        if c.dazed == 0:
+        #if c.dazed == 0:
             # See if the child needs a new destination.
             #while runTimer[ i ] <= 0 or runTarget[ i ] == c.pos:
             #    runTarget[ i ].set( rnd.randint( 0, SIZE - 1 ),
             #                        rnd.randint( 0, SIZE - 1 ) )
             #    runTimer[ i ] = rnd.uniform( 1, 14 )
-            if i == 0:
-                runTarget[i].set(7,22)
-            elif i == 1:
-                runTarget[i].set(22,22)
-            elif i == 2:
-                runTarget[i].set(7,7)
-            elif i == 3:
-                runTarget[i].set(22,7)
+
+            #if i == 0:
+            #    runTarget[i].set(7,22)
+            #elif i == 1:
+            #    runTarget[i].set(22,22)
+            #elif i == 2:
+            #    runTarget[i].set(7,7)
+            #elif i == 3:
+            #    runTarget[i].set(22,7)
 
         # Try to acquire a snowball if we need one.
         if c.holding != HOLD_S1:
@@ -339,12 +388,16 @@ while turnNum >= 0:
                             m.dest = Point( c.pos.x + dx * 2,
                                             c.pos.y + dy * 2 )
                             # but if something's in the way, like a tree, 
-                            # or your own guy, then it doesnt make sense
+                            # or your own guy (although your own guy could move in this turn?), 
+                            # then it doesnt make sense to throw, because it will just be
+                            # blocked, or you will hit your own guy
                     j += 1
 
-            # Try to run toward the destination.
+            # If nothing else to do, try to move somewhere
             if m.action == "idle":
-                moveToward( c, runTarget[ i ], m )
+                if c.dazed == 0:
+                    planned_movement(c,m)
+                #moveToward( c, runTarget[ i ], m )
                 #runTimer[ i ] -= 1
 
 
