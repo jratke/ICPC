@@ -239,11 +239,52 @@ def valid_random_movement(c, m):
         m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])        
 
 
-# come up with a list of potential victims... that are all within range...
-# if the victims are dazed, we should aim for the one that is the least dazed.
-# order by dazed?
-def victims_in_range(c):
+# come up with a list of potential victims... 
+# current criteria is just "in range" 
+# TODO: consider the path to the target. If it is blocked, it's not a good target...
+def victims_in_range(c, cList):
     vics = []
+
+    j = CCOUNT
+    while j < CCOUNT * 2:
+        if cList[ j ].pos.x >= 0:
+            # We know where this child is, see if it's not too far away.
+            dx = cList[ j ].pos.x - c.pos.x
+            dy = cList[ j ].pos.y - c.pos.y
+            #steps = max(dx,dy)
+            dsq = dx * dx + dy * dy
+
+            if dsq < 8 * 8:
+                vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed))
+        j += 1
+    return vics
+
+# if the victims are dazed, we should aim for the one that is the least dazed.
+# aim for closest, as we are likely to hit it.
+# if a victim is holding a medium or large snowball target them to disrupt them  .. also likely to be standing still.
+
+# snowball 0(none) 1(small) 2(med)
+# dazed 0 .. 4
+# dsq (distance) ....
+
+def choose_victim(vics):
+    vics.sort(lambda x,y:cmp(x[2],y[2])) # dsq 
+    vics.sort(lambda x,y:cmp(x[4],y[4])) # dazed
+    vics.sort(lambda x,y:cmp(x[3],y[3]), reverse=True)  # holding.  
+    return vics[0]
+
+def target_victim(c, vic, m):
+    m.action = "throw"
+    # throw past the victim, so we will probably hit them
+    # before the snowball falls into the snow.
+    m.dest = Point( c.pos.x + vic[0] * 2,
+                    c.pos.y + vic[1] * 2 )
+    # but if something's in the way, like a tree, 
+    # or a snowman that we can't throw over
+    # or your own guy (although your own guy could move in this turn?), 
+    # then it doesnt make sense to throw, because it will just be
+    # blocked, or you will hit your own guy
+
 
 
 ########################################################################################
@@ -386,7 +427,7 @@ while turnNum >= 0:
                     # move randomly to try to find some snow
                     valid_random_movement(c,m)
         else:
-            # Hold one small snow ball.
+            # Child is holding one small snow ball.
 
             # If next to any space containing a medium on a large,
             # finish the snowman for our team!
@@ -398,33 +439,18 @@ while turnNum >= 0:
                          ground[ ox ][ oy ] == GROUND_LM ):
                         m.action = "drop"
                         m.dest = Point(ox,oy)
- 
+            #FIXME... dont allow following action
+
             # Stand up if the child is armed.
             if not c.standing:
                 m.action = "stand"
             else:
-                # Try to find a victim.
-                victimFound = 0
-                j = CCOUNT
-                while j < CCOUNT * 2 and not victimFound:
-                    if cList[ j ].pos.x >= 0:
-                        # We know where this child is, see if it's not too far away.
-                        dx = cList[ j ].pos.x - c.pos.x
-                        dy = cList[ j ].pos.y - c.pos.y
-                        dsq = dx * dx + dy * dy
-                        # try a different one if already dazed as well.
-                        if dsq < 8 * 8 and cList[j].dazed == 0:
-                            victimFound = 1
-                            m.action = "throw"
-                            # throw past the victim, so we will probably hit them
-                            # before the snowball falls into the snow.
-                            m.dest = Point( c.pos.x + dx * 2,
-                                            c.pos.y + dy * 2 )
-                            # but if something's in the way, like a tree, 
-                            # or your own guy (although your own guy could move in this turn?), 
-                            # then it doesnt make sense to throw, because it will just be
-                            # blocked, or you will hit your own guy
-                    j += 1
+                # find potential victims.
+                vics = victims_in_range(c, cList)
+                if len(vics) > 0:
+                    # choose the best one.
+                    # throw at that one.
+                    target_victim(c, choose_victim(vics), m)
 
             # If nothing else to do, try to move somewhere
             if m.action == "idle":
