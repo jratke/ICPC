@@ -125,6 +125,11 @@ def clamp( x, a, b ):
         return b
     return x
 
+def moveOrRandom(c,px,py,m):
+    if can_move(px,py):
+        m.dest = Point(px,py)
+    else:
+        valid_random_movement(c,m)
 
 # Fill in move m to move the child c twoard the given target location, either
 # crawling or running.
@@ -135,30 +140,37 @@ def moveToward( c, target, m ):
             if c.pos.y != target.y:
                 # Run diagonally.
                 m.action = "run"
-                m.dest = Point( c.pos.x + clamp( target.x - c.pos.x, -1, 1 ),
-                                c.pos.y + clamp( target.y - c.pos.y, -1, 1 ) )
+                px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
+                py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
+                moveOrRandom(c,px,py,m)
             else:
                 # Run left or right
                 m.action = "run"
-                m.dest = Point( c.pos.x + clamp( target.x - c.pos.x, -2, 2 ), 
-                                c.pos.y )
+                px = c.pos.x + clamp( target.x - c.pos.x, -2, 2 )
+                py = c.pos.y
+                # Check both spaces!!! (closer one first)
+                moveOrRandom(c,px,py,m)
         elif c.pos.y != target.y:
             # Run up or down.
             m.action = "run"
-            m.dest = Point( c.pos.x, 
-                            c.pos.y + clamp( target.y - c.pos.y, -2, 2 ) )
+            px = c.pos.x 
+            py = c.pos.y + clamp( target.y - c.pos.y, -2, 2 )
+            # Check both spaces!!! (closer one first)
+            moveOrRandom(c,px,py,m)
     else:
         # Crawl to the destination
         if c.pos.x != target.x:
             # crawl left or right
             m.action = "crawl"
-            m.dest = Point( c.pos.x + clamp( target.x - c.pos.x, -1, 1 ), 
-                            c.pos.y )
+            px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
+            py = c.pos.y
+            moveOrRandom(c,px,py,m)
         elif c.pos.y != target.y:
             # crawl up or down.
             m.action = "crawl"
-            m.dest = Point( c.pos.x, 
-                            c.pos.y + clamp( target.y - c.pos.y, -1, 1 ) )
+            px = c.pos.x 
+            py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
+            moveOrRandom(c,px,py,m)
 
 
 # show height of thrown snowball for each step up to n steps.
@@ -183,7 +195,7 @@ def can_c_hit_snowman_head(c, sx, sy, height):
 def good_path(x1,y1,x2,y2):
     pass
 
-def possible_movement(c):
+def random_movement(c):
     if c.standing:
         options = [(-2,0),(-1,0,),(-1,-1),(0,2),(0,1),(1,1),(1,0),(2,0),(1,-1),(0,-1),(0,-2),(-1,-1)]
         return options[int(round(rnd.uniform(0,11)))]
@@ -208,12 +220,12 @@ def can_move(px, py):
     else:
         return False
 
-def planned_movement(c, m):
+def valid_random_movement(c, m):
     valid = False
     p = (0,0)
 
     while valid == False:
-        p = possible_movement(c)
+        p = random_movement(c)
         if can_move(c.pos.x + p[0], c.pos.y + p[1]):
             valid = True
         else:
@@ -314,6 +326,11 @@ while turnNum >= 0:
         if c.pos.x >= 0:
             ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD
 
+    runTarget[0].set(7,22)
+    runTarget[1].set(22,22)
+    runTarget[2].set(7,7)
+    runTarget[3].set(22,7)
+
     # Decide what each child should do
     for i in range( CCOUNT ):
         c = cList[ i ]
@@ -325,15 +342,6 @@ while turnNum >= 0:
             #    runTarget[ i ].set( rnd.randint( 0, SIZE - 1 ),
             #                        rnd.randint( 0, SIZE - 1 ) )
             #    runTimer[ i ] = rnd.uniform( 1, 14 )
-
-            #if i == 0:
-            #    runTarget[i].set(7,22)
-            #elif i == 1:
-            #    runTarget[i].set(22,22)
-            #elif i == 2:
-            #    runTarget[i].set(7,7)
-            #elif i == 3:
-            #    runTarget[i].set(22,7)
 
         # Try to acquire a snowball if we need one.
         if c.holding != HOLD_S1:
@@ -351,8 +359,8 @@ while turnNum >= 0:
                              oy >= 0 and oy < SIZE and
                              ( ox != c.pos.x or oy != c.pos.y ) and
                              ground[ ox ][ oy ] == GROUND_EMPTY and
-                             height[ ox ][ oy ] > 0 and
-                             (ox != c.last_pickup.x and oy != c.last_pickup.y) ):
+                             height[ ox ][ oy ] > 0):# and
+                             #(ox != c.last_pickup.x and oy != c.last_pickup.y) ):
                            sx = ox
                            sy = oy
                                
@@ -396,8 +404,8 @@ while turnNum >= 0:
             # If nothing else to do, try to move somewhere
             if m.action == "idle":
                 if c.dazed == 0:
-                    planned_movement(c,m)
-                #moveToward( c, runTarget[ i ], m )
+                    #planned_movement(c,m)
+                    moveToward( c, runTarget[ i ], m )
                 #runTimer[ i ] -= 1
 
 
