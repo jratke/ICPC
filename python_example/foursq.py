@@ -358,7 +358,7 @@ while turnNum >= 0:
                         if ( ox >= 0 and ox < SIZE and
                              oy >= 0 and oy < SIZE and
                              ( ox != c.pos.x or oy != c.pos.y ) and
-                             ground[ ox ][ oy ] == GROUND_EMPTY and
+                             (ground[ ox ][ oy ] == GROUND_EMPTY or ground[ ox ][ oy ] == GROUND_S) and
                              height[ ox ][ oy ] > 0):# and
                              #(ox != c.last_pickup.x and oy != c.last_pickup.y) ):
                            sx = ox
@@ -372,8 +372,21 @@ while turnNum >= 0:
                         c.last_pickup = Point( sx, sy )
                         m.action = "pickup"
                         m.dest = Point( sx, sy )
-
+                else:
+                    # move randomly to try to find some snow
+                    valid_random_movement(c,m)
         else:
+            # If next to any space containing a medium on a large,
+            # finish the snowman for our team!
+            for ox in range( c.pos.x - 1, c.pos.x + 2 ):
+                for oy in range( c.pos.y - 1, c.pos.y + 2 ):
+                    if ( ox >= 0 and ox < SIZE and
+                         oy >= 0 and oy < SIZE and
+                         ( ox != c.pos.x or oy != c.pos.y ) and
+                         ground[ ox ][ oy ] == GROUND_LM ):
+                        m.action = "drop"
+                        m.dest = Point(ox,oy)
+ 
             # Stand up if the child is armed.
             if not c.standing:
                 m.action = "stand"
