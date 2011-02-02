@@ -239,6 +239,13 @@ def valid_random_movement(c, m):
         m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])        
 
 
+# come up with a list of potential victims... that are all within range...
+# if the victims are dazed, we should aim for the one that is the least dazed.
+# order by dazed?
+def victims_in_range(c):
+    vics = []
+
+
 ########################################################################################
 
 # Source of randomness
@@ -358,7 +365,10 @@ while turnNum >= 0:
                         if ( ox >= 0 and ox < SIZE and
                              oy >= 0 and oy < SIZE and
                              ( ox != c.pos.x or oy != c.pos.y ) and
-                             (ground[ ox ][ oy ] == GROUND_EMPTY or ground[ ox ][ oy ] == GROUND_S) and
+                             (ground[ ox ][ oy ] == GROUND_EMPTY or 
+                              ground[ ox ][ oy ] == GROUND_S or
+                              ground[ ox ][ oy ] == GROUND_MS or
+                              ground[ ox ][ oy ] == GROUND_LS) and
                              height[ ox ][ oy ] > 0):# and
                              #(ox != c.last_pickup.x and oy != c.last_pickup.y) ):
                            sx = ox
@@ -376,6 +386,8 @@ while turnNum >= 0:
                     # move randomly to try to find some snow
                     valid_random_movement(c,m)
         else:
+            # Hold one small snow ball.
+
             # If next to any space containing a medium on a large,
             # finish the snowman for our team!
             for ox in range( c.pos.x - 1, c.pos.x + 2 ):
