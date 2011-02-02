@@ -108,6 +108,11 @@ class Child:
         # Last location child attempted to pickup snow.
         self.last_pickup = Point( 0, 0 )
 
+        self.mode = 0  
+        # 0 = move to position.  (while looking for victims)
+        # 1 = (if no victims) drop small snowball and make a snowman 
+        # 2 = just look for victims, and do a better job of searching for them.
+
 
 # Simple representation for a child's action
 class Move:
@@ -208,10 +213,12 @@ def random_movement(c):
 #  px = c.pos.x + dx
 #  py = c.pos.y + dy
 def can_move(px, py):
+    global ground
+    global height
     if (px >= 0 and px < SIZE and
         py >= 0 and py < SIZE and
         # no trees or children
-        height[px][py] < 6 and
+        height[px][py] < 6 and 
         ground[px][py] != GROUND_TREE and
         ground[px][py] != GROUND_CHILD and
         ground[px][py] != GROUND_SMR and     # these last two probably redundant
@@ -236,7 +243,7 @@ def valid_random_movement(c, m):
         m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])
     else:
         m.action = "crawl"
-        m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])        
+        m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])
 
 
 # come up with a list of potential victims... 
@@ -391,13 +398,25 @@ while turnNum >= 0:
             #                        rnd.randint( 0, SIZE - 1 ) )
             #    runTimer[ i ] = rnd.uniform( 1, 14 )
 
+
+        # if mode = 0 (go to target)
+        if c.mode == 0:
+            if c.pos == runTarget[i]:  # in position
+                vics = victims_in_range(c, cList)
+                if len(vics) == 0:
+                    # no victims right now, make a snowman!
+                    c.mode = 1
+                    # first, drop the snowball we should be carrying.
+                    m.action = "drop"
+                    m.dest = Point(c.pos.x + 1, c.pos.y)
+
         # Try to acquire a snowball if we need one.
         if c.holding != HOLD_S1:
             # Crush into a snowball, if we have snow.
             if c.holding == HOLD_P1:
                 m.action = "crush"
             else:
-                # We don't have snow, see if there is some nearby.
+                # first look for small snowballs
                 sx = -1
                 sy = -1
                 for ox in range( c.pos.x - 1, c.pos.x + 2 ):
@@ -406,16 +425,28 @@ while turnNum >= 0:
                         if ( ox >= 0 and ox < SIZE and
                              oy >= 0 and oy < SIZE and
                              ( ox != c.pos.x or oy != c.pos.y ) and
-                             (ground[ ox ][ oy ] == GROUND_EMPTY or 
-                              ground[ ox ][ oy ] == GROUND_S or
+                             (ground[ ox ][ oy ] == GROUND_S or
                               ground[ ox ][ oy ] == GROUND_MS or
-                              ground[ ox ][ oy ] == GROUND_LS) and
-                             height[ ox ][ oy ] > 0):# and
-                             #(ox != c.last_pickup.x and oy != c.last_pickup.y) ):
+                              ground[ ox ][ oy ] == GROUND_LS)):
                            sx = ox
                            sy = oy
+                           break
                                
-                # If there is snow, try to get it.
+                # if no snowballs found, look for snow
+                if sx == -1:
+                    for ox in range( c.pos.x - 1, c.pos.x + 2 ):
+                        for oy in range( c.pos.y - 1, c.pos.y + 2 ):
+                            # Is there snow to pick up?
+                            if ( ox >= 0 and ox < SIZE and
+                                 oy >= 0 and oy < SIZE and
+                                 ( ox != c.pos.x or oy != c.pos.y ) and
+                                 ground[ ox ][ oy ] == GROUND_EMPTY and 
+                                 height[ ox ][ oy ] > 0):
+                                sx = ox
+                                sy = oy
+                                break
+                               
+                # If there is a small snowball or snow, try to get it.
                 if sx >= 0:
                     if c.standing:
                         m.action = "crouch"
@@ -424,7 +455,7 @@ while turnNum >= 0:
                         m.action = "pickup"
                         m.dest = Point( sx, sy )
                 else:
-                    # move randomly to try to find some snow
+                    # move randomly to try to find some small snowballs or snow
                     valid_random_movement(c,m)
         else:
             # Child is holding one small snow ball.
@@ -439,7 +470,7 @@ while turnNum >= 0:
                          ground[ ox ][ oy ] == GROUND_LM ):
                         m.action = "drop"
                         m.dest = Point(ox,oy)
-            #FIXME... dont allow following action
+            #FIXME... dont allow following action to override this one.
 
             # Stand up if the child is armed.
             if not c.standing:
