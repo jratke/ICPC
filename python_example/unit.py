@@ -11,6 +11,7 @@
 import random
 import sys
 import string
+import unittest
 
 # Constants supporting a player in the icypc challenge game.  Feel
 # free to use this and extend it for your own implementation.
@@ -292,31 +293,7 @@ def target_victim(c, vic, m):
     # then it doesnt make sense to throw, because it will just be
     # blocked, or you will hit your own guy
 
-# Look for a small snowball in the immediate vicinity
-def look_for_small_snowball(c):
-    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
-        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
-            # Is there snow to pick up?
-            if ( ox >= 0 and ox < SIZE and
-                 oy >= 0 and oy < SIZE and
-                 ( ox != c.pos.x or oy != c.pos.y ) and
-                 (ground[ ox ][ oy ] == GROUND_S or
-                  ground[ ox ][ oy ] == GROUND_MS or
-                  ground[ ox ][ oy ] == GROUND_LS)):
-                return (ox, oy)
-    return (-1, -1)
 
-def look_for_snow(c):
-    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
-        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
-            # Is there snow to pick up?
-            if ( ox >= 0 and ox < SIZE and
-                 oy >= 0 and oy < SIZE and
-                 ( ox != c.pos.x or oy != c.pos.y ) and
-                 ground[ ox ][ oy ] == GROUND_EMPTY and 
-                 height[ ox ][ oy ] > 0):
-                return (ox, oy)
-    return (-1, -1)
 
 ########################################################################################
 
@@ -351,154 +328,83 @@ for i in range( 2 * CCOUNT ):
     runTarget.append( Point( 0, 0 ) )
     runTimer.append( 0 )
 
-turnNum = string.atoi( sys.stdin.readline() )
-while turnNum >= 0:
-    # read the scores of the two sides.
-    tokens = string.split( sys.stdin.readline() )
-    score[ RED ] = tokens[ 0 ]
-    score[ BLUE ] = tokens[ 1 ]
-    
-    # Parse the current map.
-    for i in range( SIZE ):
-        tokens = string.split( sys.stdin.readline() )
-        for j in range( SIZE ):
-            # Can we see this cell?
-            if tokens[ j ][ 0 ] == '*':
-                height[ i ][ j ] = -1
-                ground[ i ][ j ] = -1
-            else:
-                height[ i ][ j ] = string.find( string.digits, tokens[ j ][ 0 ] )
-                ground[ i ][ j ] = string.find( string.ascii_lowercase, tokens[ j ][ 1 ] )
-                
-    # Read the states of all the children.
-    for i in range( CCOUNT * 2 ):
-        c = cList[ i ]
-        
-        # Compute child color based on it's index.
-        if i < CCOUNT:
-            c.color = RED
-        else:
-            c.color = BLUE
-        
-        # Can we see this child?        
-        tokens = string.split( sys.stdin.readline() )
-        if tokens[ 0 ] == "*":
-            c.pos.x = -1
-            c.pos.y = -1
-        else:
-            # Record the child's location.
-            c.pos.x = string.atoi( tokens[ 0 ] )
-            c.pos.y = string.atoi( tokens[ 1 ] )
+def init_ground():
+    for i in range(SIZE):
+        for j in range(SIZE):
+            height[i][j] = 3
+            ground[i][j] = GROUND_EMPTY
 
-            # Read the stance, what the child is holding and how much
-            # longer he's dazed.
-            c.standing = ( tokens[ 2 ] == "S" )
-            
-            c.holding = string.find( string.ascii_lowercase, tokens[ 3 ] )
+def snowball_matcher(ox, oy):
+    return (ground[ ox ][ oy ] == GROUND_S or
+            ground[ ox ][ oy ] == GROUND_MS or
+            ground[ ox ][ oy ] == GROUND_LS)
 
-            c.dazed = string.atoi( tokens[ 4 ] )
+def snow_matcher(ox, oy):
+    return (ground[ ox ][ oy ] == GROUND_EMPTY and 
+            height[ ox ][ oy ] > 0)
 
-    # Mark all the children in the map, so they are easy to
-    # look up.
-    for i in range( 2 * CCOUNT ):
-        c = cList[ i ]
-        if c.pos.x >= 0:
-            ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD
+def look_for(c, matcher):
+    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
+        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
+            # Is there snow to pick up?
+            if ( ox >= 0 and ox < SIZE and
+                 oy >= 0 and oy < SIZE and
+                 ( ox != c.pos.x or oy != c.pos.y ) and
+                 matcher(ox, oy) == True):
+                return (ox, oy)
+    return (-1, -1)
 
-    runTarget[0].set(7,22)
-    runTarget[1].set(22,22)
-    runTarget[2].set(7,7)
-    runTarget[3].set(22,7)
+def look_for_small_snowball(c):
+    return look_for(c, snowball_matcher)
 
-    # Decide what each child should do
-    for i in range( CCOUNT ):
-        c = cList[ i ]
-        m = Move()
+#    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
+#        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
+#            # Is there snow to pick up?
+#            if ( ox >= 0 and ox < SIZE and
+#                 oy >= 0 and oy < SIZE and
+#                 ( ox != c.pos.x or oy != c.pos.y ) and
+#                 (ground[ ox ][ oy ] == GROUND_S or
+#                  ground[ ox ][ oy ] == GROUND_MS or
+#                  ground[ ox ][ oy ] == GROUND_LS)):
+#                return (ox, oy)
+#    return (-1, -1)
 
-        #if c.dazed == 0:
-            # See if the child needs a new destination.
-            #while runTimer[ i ] <= 0 or runTarget[ i ] == c.pos:
-            #    runTarget[ i ].set( rnd.randint( 0, SIZE - 1 ),
-            #                        rnd.randint( 0, SIZE - 1 ) )
-            #    runTimer[ i ] = rnd.uniform( 1, 14 )
+def look_for_snow(c):
+    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
+        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
+            # Is there snow to pick up?
+            if ( ox >= 0 and ox < SIZE and
+                 oy >= 0 and oy < SIZE and
+                 ( ox != c.pos.x or oy != c.pos.y ) and
+                 ground[ ox ][ oy ] == GROUND_EMPTY and 
+                 height[ ox ][ oy ] > 0):
+                return (ox, oy)
+    return (-1, -1)
 
 
-        # if mode = 0 (go to target)
-        if c.mode == 0:
-            if c.pos == runTarget[i]:  # in position
-                vics = victims_in_range(c, cList)
-                if len(vics) == 0:
-                    # no victims right now, make a snowman!
-                    c.mode = 1
-                    # first, drop the snowball we should be carrying.
-                    m.action = "drop"
-                    m.dest = Point(c.pos.x + 1, c.pos.y)
+class TestSnow(unittest.TestCase):
+    def setUp(self):
+        init_ground()
+        self.c = Child()
+        self.c.pos.x = 1
+        self.c.pos.y = 1
 
-        # Try to acquire a snowball if we need one.
-        if c.holding != HOLD_S1:
-            # Crush into a snowball, if we have snow.
-            if c.holding == HOLD_P1:
-                m.action = "crush"
-            else:
-                # first look for small snowballs
-                sx, sy = look_for_small_snowball(c)
-                #sx = sxsy[0]
-                #sy = sxsy[1]
-                               
-                # if no snowballs found, look for snow
-                if sx == -1:
-                    sx, sy = look_for_snow(c)
+    def testCantFindAny(self):
+        result = look_for_small_snowball(self.c)
+        self.assertEqual((-1,-1), result)
 
-                # If there is a small snowball or snow, try to get it.
-                if sx >= 0:
-                    if c.standing:
-                        m.action = "crouch"
-                    else:
-                        c.last_pickup = Point( sx, sy )
-                        m.action = "pickup"
-                        m.dest = Point( sx, sy )
-                else:
-                    # move randomly to try to find some small snowballs or snow
-                    valid_random_movement(c,m)
-        else:
-            # Child is holding one small snow ball.
+    def testCanFindOne(self):
+        ground[2][2] = GROUND_S
+        result = look_for_small_snowball(self.c)
+        self.assertEqual((2,2), result)
 
-            # If next to any space containing a medium on a large,
-            # finish the snowman for our team!
-            for ox in range( c.pos.x - 1, c.pos.x + 2 ):
-                for oy in range( c.pos.y - 1, c.pos.y + 2 ):
-                    if ( ox >= 0 and ox < SIZE and
-                         oy >= 0 and oy < SIZE and
-                         ( ox != c.pos.x or oy != c.pos.y ) and
-                         ground[ ox ][ oy ] == GROUND_LM ):
-                        m.action = "drop"
-                        m.dest = Point(ox,oy)
-            #FIXME... dont allow following action to override this one.
-
-            # Stand up if the child is armed.
-            if not c.standing:
-                m.action = "stand"
-            else:
-                # find potential victims.
-                vics = victims_in_range(c, cList)
-                if len(vics) > 0:
-                    # choose the best one.
-                    # throw at that one.
-                    target_victim(c, choose_victim(vics), m)
-
-            # If nothing else to do, try to move somewhere
-            if m.action == "idle":
-                if c.dazed == 0:
-                    #planned_movement(c,m)
-                    moveToward( c, runTarget[ i ], m )
-                #runTimer[ i ] -= 1
+    def testUpperRightPreferred(self):
+        ground[2][2] = GROUND_S
+        ground[1][2] = GROUND_S
+        ground[2][1] = GROUND_S
+        result = look_for_small_snowball(self.c)
+        self.assertEqual((2,2), result)
 
 
-        # Write out the child's move
-        if m.dest == None:
-            sys.stdout.write( "%s\n" % m.action )
-        else:
-            sys.stdout.write( "%s %d %d\n" % ( m.action, m.dest.x, m.dest.y ) )
-
-    sys.stdout.flush()
-    turnNum = string.atoi( sys.stdin.readline() )
+if __name__ == '__main__':
+    unittest.main()
