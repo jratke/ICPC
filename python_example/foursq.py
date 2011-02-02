@@ -292,31 +292,34 @@ def target_victim(c, vic, m):
     # then it doesnt make sense to throw, because it will just be
     # blocked, or you will hit your own guy
 
-# Look for a small snowball in the immediate vicinity
-def look_for_small_snowball(c):
+def snowball_matcher(ox, oy):
+    return (ground[ ox ][ oy ] == GROUND_S or
+            ground[ ox ][ oy ] == GROUND_MS or
+            ground[ ox ][ oy ] == GROUND_LS)
+
+def snow_matcher(ox, oy):
+    return (ground[ ox ][ oy ] == GROUND_EMPTY and 
+            height[ ox ][ oy ] > 0)
+
+def almost_snowman(ox, oy):
+    return (ground[ ox ][ oy ] == GROUND_LM)
+
+def look_for(c, matcher):
     for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
         for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
             # Is there snow to pick up?
             if ( ox >= 0 and ox < SIZE and
                  oy >= 0 and oy < SIZE and
                  ( ox != c.pos.x or oy != c.pos.y ) and
-                 (ground[ ox ][ oy ] == GROUND_S or
-                  ground[ ox ][ oy ] == GROUND_MS or
-                  ground[ ox ][ oy ] == GROUND_LS)):
+                 matcher(ox, oy) == True):
                 return (ox, oy)
     return (-1, -1)
 
+def look_for_small_snowball(c):
+    return look_for(c, snowball_matcher)
+
 def look_for_snow(c):
-    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
-        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
-            # Is there snow to pick up?
-            if ( ox >= 0 and ox < SIZE and
-                 oy >= 0 and oy < SIZE and
-                 ( ox != c.pos.x or oy != c.pos.y ) and
-                 ground[ ox ][ oy ] == GROUND_EMPTY and 
-                 height[ ox ][ oy ] > 0):
-                return (ox, oy)
-    return (-1, -1)
+    return look_for(c, snow_matcher)
 
 ########################################################################################
 
@@ -440,12 +443,8 @@ while turnNum >= 0:
             if c.holding == HOLD_P1:
                 m.action = "crush"
             else:
-                # first look for small snowballs
                 sx, sy = look_for_small_snowball(c)
-                #sx = sxsy[0]
-                #sy = sxsy[1]
-                               
-                # if no snowballs found, look for snow
+
                 if sx == -1:
                     sx, sy = look_for_snow(c)
 
@@ -465,15 +464,12 @@ while turnNum >= 0:
 
             # If next to any space containing a medium on a large,
             # finish the snowman for our team!
-            for ox in range( c.pos.x - 1, c.pos.x + 2 ):
-                for oy in range( c.pos.y - 1, c.pos.y + 2 ):
-                    if ( ox >= 0 and ox < SIZE and
-                         oy >= 0 and oy < SIZE and
-                         ( ox != c.pos.x or oy != c.pos.y ) and
-                         ground[ ox ][ oy ] == GROUND_LM ):
-                        m.action = "drop"
-                        m.dest = Point(ox,oy)
-            #FIXME... dont allow following action to override this one.
+            sx, sy = look_for(c, almost_snowman)
+            if sx >= 0:
+                m.action = "drop"
+                m.dest = Point(sx,sy)
+
+            # FIXME... dont allow following action to override this one.
 
             # Stand up if the child is armed.
             if not c.standing:
@@ -489,9 +485,7 @@ while turnNum >= 0:
             # If nothing else to do, try to move somewhere
             if m.action == "idle":
                 if c.dazed == 0:
-                    #planned_movement(c,m)
                     moveToward( c, runTarget[ i ], m )
-                #runTimer[ i ] -= 1
 
 
         # Write out the child's move
