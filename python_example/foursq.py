@@ -113,7 +113,8 @@ class RedChild(Child):
         self.color = RED
 
         # Last location child attempted to pickup snow.
-        self.last_pickup = Point( 0, 0 )
+        self.last_action = "idle"
+        self.last_dest = Point( -1, -1 )
 
         # The child index of the last child that we tried to
         # throw a snowball at...
@@ -491,9 +492,16 @@ while turnNum >= 0:
                     if c.standing:
                         m.action = "crouch"
                     else:
-                        c.last_pickup = Point( sx, sy )
                         m.action = "pickup"
                         m.dest = Point( sx, sy )
+
+                        # But, if a previous child is going to pick up 
+                        # from the same spot, then move randomly instead.
+                        if i > 0:
+                            for prev_c_index in range(0, i):
+                                if (cList[prev_c_index].last_action == "pickup" and
+                                    cList[prev_c_index].last_dest == m.dest):
+                                   valid_random_movement(c,m)
                 else:
                     # move randomly to try to find some small snowballs or snow
                     valid_random_movement(c,m)
@@ -547,12 +555,17 @@ while turnNum >= 0:
                     if c.dazed == 0:
                         moveToward( c, c.target, m )
 
+        # TODO: avoid a attempt to move into the same space as well.
+
+        c.last_action = m.action
 
         # Write out the child's move
         if m.dest == None:
             sys.stdout.write( "%s\n" % m.action )
+            c.last_dest.set(-1,-1)
         else:
             sys.stdout.write( "%s %d %d\n" % ( m.action, m.dest.x, m.dest.y ) )
+            c.last_dest.set(m.dest.x, m.dest.y)
 
     sys.stdout.flush()
     turnNum = string.atoi( sys.stdin.readline() )
