@@ -87,7 +87,7 @@ class Point:
         else:
             return self.__dict__ != other.__dict__
 
-TARGETS = [ [(7,22)],[(22,22)],[(7,7)],[(22,7)] ]
+TARGETS = [ [(7,22),(9,19)],[(22,22),(20,19)],[(7,7),(9,10)],[(22,7),(20,10)] ]
 
 # Simple representation for a child in the game.
 class Child:
@@ -110,6 +110,8 @@ class Child:
         # Last location child attempted to pickup snow.
         self.last_pickup = Point( 0, 0 )
 
+        self.index = i
+
         # which run target...
         self.target_index = 0
         self.target = Point(0, 0)
@@ -117,8 +119,13 @@ class Child:
 
     def set_target(self, i):
         if i < 4:
-            self.target.set(TARGETS[i][0][0], TARGETS[i][0][1])
+            self.target.set(TARGETS[i][self.target_index][0], 
+                            TARGETS[i][self.target_index][1])
             
+    def switch_target(self):
+        self.target_index = (self.target_index + 1) % 2
+        self.set_target(self.index)
+        
 
 # Simple representation for a child's action
 class Move:
@@ -456,12 +463,25 @@ while turnNum >= 0:
                 m.action = "drop"
                 m.dest = Point(sx,sy)
             else:
-                stand_and_throw(c, m)
+                # Stand up if the child is armed.
+                if not c.standing:
+                    m.action = "stand"
+                else:
+                    # find potential victims.
+                    vics = victims_in_range(c, cList)
+                    if len(vics) > 0:
+                        # choose the best one.
+                        # throw at that one.
+                        target_victim(c, choose_victim(vics), m)
+                    else:
+                        # are we at our target?
+                        if c.pos == c.target:
+                            c.switch_target()
 
-            # If nothing else to do, try to move somewhere
-            if m.action == "idle":
-                if c.dazed == 0:
-                    moveToward( c, c.target, m )
+                # If nothing else to do, try to move somewhere
+                if m.action == "idle":
+                    if c.dazed == 0:
+                        moveToward( c, c.target, m )
 
 
         # Write out the child's move
