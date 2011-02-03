@@ -337,12 +337,17 @@ def target_victim(c, vic, m):
 
         # if anything we don't want to hit at this point
         # including the ground, abort!
-        if ground[atx][aty] == GROUND_TREE:
+        if (ground[atx][aty] == GROUND_TREE or
+            (height[atx][aty] >= 0 and    # we know the height  and...
+             (height_at_step_s < height[atx][aty]))): # or
+             # (height_at_step_s == height[atx][aty] and
+             #  ground[atx][aty] != GROUND_SMB)))):
             break
 
         # if something we do want to hit.  Take the shot!!!
-        if ground[atx][aty] == GROUND_CHILD_BLUE:
+        if ground[atx][aty] == GROUND_CHILD_BLUE:  # TODO: and they are not ducking...
             take_the_shot = True
+            break
 
         # a blue snow man is ok, only if we are going to hit it in the head
         # a red snowman is ok, only if we throw over it..
