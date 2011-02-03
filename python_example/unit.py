@@ -357,30 +357,8 @@ def look_for(c, matcher):
 def look_for_small_snowball(c):
     return look_for(c, snowball_matcher)
 
-#    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
-#        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
-#            # Is there snow to pick up?
-#            if ( ox >= 0 and ox < SIZE and
-#                 oy >= 0 and oy < SIZE and
-#                 ( ox != c.pos.x or oy != c.pos.y ) and
-#                 (ground[ ox ][ oy ] == GROUND_S or
-#                  ground[ ox ][ oy ] == GROUND_MS or
-#                  ground[ ox ][ oy ] == GROUND_LS)):
-#                return (ox, oy)
-#    return (-1, -1)
-
 def look_for_snow(c):
-    for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
-        for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
-            # Is there snow to pick up?
-            if ( ox >= 0 and ox < SIZE and
-                 oy >= 0 and oy < SIZE and
-                 ( ox != c.pos.x or oy != c.pos.y ) and
-                 ground[ ox ][ oy ] == GROUND_EMPTY and 
-                 height[ ox ][ oy ] > 0):
-                return (ox, oy)
-    return (-1, -1)
-
+    return look_for(c, snow_matcher)
 
 class TestSnow(unittest.TestCase):
     def setUp(self):

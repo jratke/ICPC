@@ -321,6 +321,18 @@ def look_for_small_snowball(c):
 def look_for_snow(c):
     return look_for(c, snow_matcher)
 
+def stand_and_throw(c, m):
+    # Stand up if the child is armed.
+    if not c.standing:
+        m.action = "stand"
+    else:
+        # find potential victims.
+        vics = victims_in_range(c, cList)
+        if len(vics) > 0:
+            # choose the best one.
+            # throw at that one.
+            target_victim(c, choose_victim(vics), m)
+
 ########################################################################################
 
 # Source of randomness
@@ -418,14 +430,6 @@ while turnNum >= 0:
         c = cList[ i ]
         m = Move()
 
-        #if c.dazed == 0:
-            # See if the child needs a new destination.
-            #while runTimer[ i ] <= 0 or runTarget[ i ] == c.pos:
-            #    runTarget[ i ].set( rnd.randint( 0, SIZE - 1 ),
-            #                        rnd.randint( 0, SIZE - 1 ) )
-            #    runTimer[ i ] = rnd.uniform( 1, 14 )
-
-
         # if mode = 0 (go to target)
         if c.mode == 0:
             if c.pos == runTarget[i]:  # in position
@@ -468,19 +472,8 @@ while turnNum >= 0:
             if sx >= 0:
                 m.action = "drop"
                 m.dest = Point(sx,sy)
-
-            # FIXME... dont allow following action to override this one.
-
-            # Stand up if the child is armed.
-            if not c.standing:
-                m.action = "stand"
             else:
-                # find potential victims.
-                vics = victims_in_range(c, cList)
-                if len(vics) > 0:
-                    # choose the best one.
-                    # throw at that one.
-                    target_victim(c, choose_victim(vics), m)
+                stand_and_throw(c, m)
 
             # If nothing else to do, try to move somewhere
             if m.action == "idle":
