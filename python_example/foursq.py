@@ -95,6 +95,10 @@ class Child:
         # Location of the child.
         self.pos = Point( 0, 0 )
 
+        # If pos of opponent is unknown, perhaps the last know pos
+        # might be helpful.
+        self.last_known = Point(0, 0)
+
         # True if  the child is standing.
         self.standing = 1
     
@@ -281,7 +285,8 @@ def victims_in_range(c, cList):
 
 # if the victims are dazed, we should aim for the one that is the least dazed.
 # aim for closest, as we are likely to hit it.
-# if a victim is holding a medium or large snowball target them to disrupt them  .. also likely to be standing still.
+# if a victim is holding a medium or large snowball target them to disrupt them 
+#  .. also likely to be standing still.
 
 # snowball 0(none) 1(small) 2(med)
 # dazed 0 .. 4
@@ -410,6 +415,7 @@ while turnNum >= 0:
             # Record the child's location.
             c.pos.x = string.atoi( tokens[ 0 ] )
             c.pos.y = string.atoi( tokens[ 1 ] )
+            c.last_known.set(c.pos.x, c.pos.y)
 
             # Read the stance, what the child is holding and how much
             # longer he's dazed.
