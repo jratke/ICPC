@@ -66,7 +66,8 @@ MAX_PILE = 9
 OBSTACLE_HEIGHT = 6
 
 # Constant used to mark child locations in the map, not used in this player.
-GROUND_CHILD = 10
+GROUND_CHILD_RED = 10
+GROUND_CHILD_BLUE = 11
 
 # Representation of a 2D point, used for playing field locations.
 class Point:
@@ -95,15 +96,8 @@ class Child:
         # Location of the child.
         self.pos = Point( 0, 0 )
 
-        # If pos of opponent is unknown, perhaps the last know pos
-        # might be helpful.
-        self.last_known = Point(0, 0)
-
-        # True if  the child is standing.
+       # True if  the child is standing.
         self.standing = 1
-    
-        # Side the child is on.
-        self.color = RED
     
         # What's the child holding.
         self.holding = HOLD_EMPTY
@@ -111,10 +105,19 @@ class Child:
         # How many more turns this child is dazed.
         self.dazed = 0
 
+        self.index = i
+
+class RedChild(Child):
+    def __init__(self, i):
+        Child.__init__(self, i)
+        self.color = RED
+
         # Last location child attempted to pickup snow.
         self.last_pickup = Point( 0, 0 )
 
-        self.index = i
+        # The child index of the last child that we tried to
+        # throw a snowball at...
+        self.last_victim = 0
 
         # which run target...
         self.target_index = 0
@@ -129,7 +132,15 @@ class Child:
     def switch_target(self):
         self.target_index = (self.target_index + 1) % 2
         self.set_target(self.index)
-        
+
+class BlueChild(Child):
+    def __init__(self, i):
+        Child.__init__(self, i)
+        self.color = BLUE
+        # If pos of opponent is unknown, perhaps the last know pos
+        # might be helpful.
+        self.last_known = Point(0, 0)
+
 
 # Simple representation for a child's action
 class Move:
@@ -237,7 +248,8 @@ def can_move(px, py):
         # no trees or children
         height[px][py] < 6 and 
         ground[px][py] != GROUND_TREE and
-        ground[px][py] != GROUND_CHILD and
+        ground[px][py] != GROUND_CHILD_RED and
+        ground[px][py] != GROUND_CHILD_BLUE and
         ground[px][py] != GROUND_SMR and     # these last two probably redundant
         ground[px][py] != GROUND_SMB):
         return True
@@ -279,7 +291,7 @@ def victims_in_range(c, cList):
             dsq = dx * dx + dy * dy
 
             if dsq < 8 * 8:
-                vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed))
+                vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed,j))
         j += 1
     return vics
 
@@ -375,7 +387,11 @@ for i in range( SIZE ):
 cList = []
 
 for i in range( 2 * CCOUNT ):
-    cList.append( Child(i) )
+    if i < CCOUNT:
+        c = RedChild(i)
+    else:
+        c = BlueChild(i)
+    cList.append( c )
 
 turnNum = string.atoi( sys.stdin.readline() )
 while turnNum >= 0:
@@ -400,12 +416,6 @@ while turnNum >= 0:
     for i in range( CCOUNT * 2 ):
         c = cList[ i ]
         
-        # Compute child color based on it's index.
-        if i < CCOUNT:
-            c.color = RED
-        else:
-            c.color = BLUE
-        
         # Can we see this child?        
         tokens = string.split( sys.stdin.readline() )
         if tokens[ 0 ] == "*":
@@ -415,7 +425,8 @@ while turnNum >= 0:
             # Record the child's location.
             c.pos.x = string.atoi( tokens[ 0 ] )
             c.pos.y = string.atoi( tokens[ 1 ] )
-            c.last_known.set(c.pos.x, c.pos.y)
+            if i >= CCOUNT:
+                c.last_known.set(c.pos.x, c.pos.y)
 
             # Read the stance, what the child is holding and how much
             # longer he's dazed.
@@ -430,7 +441,10 @@ while turnNum >= 0:
     for i in range( 2 * CCOUNT ):
         c = cList[ i ]
         if c.pos.x >= 0:
-            ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD
+            if i < CCOUNT:
+                ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD_RED
+            else:
+                ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD_BLUE
 
     # Decide what each child should do
     for i in range( CCOUNT ):
@@ -477,8 +491,10 @@ while turnNum >= 0:
                     vics = victims_in_range(c, cList)
                     if len(vics) > 0:
                         # choose the best one.
-                        # throw at that one.
-                        target_victim(c, choose_victim(vics), m)
+                        vic = choose_victim(vics)
+                        # set action to throw and set the dest.
+                        target_victim(c, vic, m)
+                        c.last_victim = vic[5]
                     else:
                         # are we at our target?
                         if c.pos == c.target:
