@@ -480,8 +480,14 @@ while turnNum >= 0:
         c = cList[ i ]
         m = Move()
 
+        # If we somehow (bug?) hold a medium or large snowball, drop it!
+        if (c.holding == HOLD_M or c.holding == HOLD_L or
+            c.holding == HOLD_P2 or c.holding == HOLD_P3):
+            m.action = "drop"
+            m.dest = Point(c.pos.x + 1, c.pos.y)
+
         # Try to acquire a snowball if we need one.
-        if c.holding != HOLD_S1:
+        elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
             # Crush into a snowball, if we have snow.
             if c.holding == HOLD_P1:
                 m.action = "crush"
@@ -510,7 +516,7 @@ while turnNum >= 0:
                     # move randomly to try to find some small snowballs or snow
                     valid_random_movement(c,m)
         else:
-            # Child is holding one small snow ball.
+            # Child is holding one (or more!) small snow ball.
 
             # If next to any space containing a medium on a large,
             # finish the snowman for our team!
