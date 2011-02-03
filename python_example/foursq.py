@@ -350,7 +350,8 @@ def moveToAverage(c, cList, m):
 def snowball_matcher(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_S or
             ground[ ox ][ oy ] == GROUND_MS or
-            ground[ ox ][ oy ] == GROUND_LS)
+            ground[ ox ][ oy ] == GROUND_LS or
+            ground[ ox ][ oy ] == GROUND_SMB)  # because we can take the top off.
 
 def snow_matcher(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_EMPTY and 
@@ -387,6 +388,9 @@ def stand_and_throw(c, m):
             # choose the best one.
             # throw at that one.
             target_victim(c, choose_victim(vics), m)
+
+# TODO:
+# function: can I get next to it in one run?
 
 
 ########################################################################################
@@ -528,6 +532,13 @@ while turnNum >= 0:
                         target_victim(c, vic, m)
                         c.last_victim = vic[5]
                     else:
+                        # TODO: Look for any almost complete snowmen near by that
+                        # we can run to in one step and complete?
+
+                        # TODO: You can also crouch and pick up the top snowball from the 
+                        # stack, thereby destroying the enemy snowman. Make sure to
+                        # do this only for blue snowmen!
+
                         # are we at our target?
                         if c.reached_target == True:
                             # now go free range...
