@@ -120,6 +120,7 @@ class RedChild(Child):
         self.last_victim = 0
 
         # which run target...
+        self.reached_target = False
         self.target_index = 0
         self.target = Point(0, 0)
         self.set_target(i)
@@ -322,6 +323,29 @@ def target_victim(c, vic, m):
     # then it doesnt make sense to throw, because it will just be
     # blocked, or you will hit your own guy
 
+def moveToAverage(c, cList, m):
+    # come up with a list of known team members of the opposite team.
+    locations = []
+    for i in range( CCOUNT, CCOUNT * 2 ):
+        if cList[i].pos.x >= 0:
+            # we know where he is.
+            locations.append( (cList[i].pos.x, cList[i].pos.y) )
+    # now get the average 
+    if len(locations) > 0:
+        # figure out the average
+        xsum = 0
+        ysum = 0
+        for j in locations:
+            xsum += j[0]
+            ysum += j[1]
+        xav = int(round(xsum / len(locations)))
+        yav = int(round(ysum / len(locations)))
+        # move toward it
+        moveToward(c, Point(xav, yav), m)
+    else:
+        # random move.
+        valid_random_movement(c, m)
+
 def snowball_matcher(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_S or
             ground[ ox ][ oy ] == GROUND_MS or
@@ -497,8 +521,26 @@ while turnNum >= 0:
                         c.last_victim = vic[5]
                     else:
                         # are we at our target?
-                        if c.pos == c.target:
-                            c.switch_target()
+                        if c.reached_target == True:
+                            # now go free range...
+                            if c.last_victim > 0:
+                                # do we know where he is now?
+                                if cList[c.last_victim].pos.x >= 0:
+                                    # move towards him
+                                    moveToward(c, Point(cList[c.last_victim].pos.x,
+                                                        cList[c.last_victim].pos.y), m)
+                                else:
+                                    if cList[c.last_victim].last_known.x >= 0:
+                                        moveToward(c, 
+                                                   Point(cList[c.last_victim].last_known.x,
+                                                         cList[c.last_victim].last_known.y), m)
+                                    else:
+                                        moveToAverage(c, cList, m)
+                            else:
+                                moveToAverage(c, cList, m)
+                        else:
+                            if c.pos == c.target:
+                                c.reached_target = True
 
                 # If nothing else to do, try to move somewhere
                 if m.action == "idle":
