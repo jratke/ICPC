@@ -87,9 +87,11 @@ class Point:
         else:
             return self.__dict__ != other.__dict__
 
+TARGETS = [ [(7,22)],[(22,22)],[(7,7)],[(22,7)] ]
+
 # Simple representation for a child in the game.
 class Child:
-    def __init__( self ):
+    def __init__( self, i ):
         # Location of the child.
         self.pos = Point( 0, 0 )
 
@@ -108,11 +110,15 @@ class Child:
         # Last location child attempted to pickup snow.
         self.last_pickup = Point( 0, 0 )
 
-        self.mode = 0  
-        # 0 = move to position.  (while looking for victims)
-        # 1 = (if no victims) drop small snowball and make a snowman 
-        # 2 = just look for victims, and do a better job of searching for them.
+        # which run target...
+        self.target_index = 0
+        self.target = Point(0, 0)
+        self.set_target(i)
 
+    def set_target(self, i):
+        if i < 4:
+            self.target.set(TARGETS[i][0][0], TARGETS[i][0][1])
+            
 
 # Simple representation for a child's action
 class Move:
@@ -333,6 +339,7 @@ def stand_and_throw(c, m):
             # throw at that one.
             target_victim(c, choose_victim(vics), m)
 
+
 ########################################################################################
 
 # Source of randomness
@@ -355,16 +362,8 @@ for i in range( SIZE ):
 # List of children on the field, half for each team.
 cList = []
 
-# Random destination for each player.
-runTarget = []
-
-# How long the child has left to run toward its destination.
-runTimer = []
-
 for i in range( 2 * CCOUNT ):
-    cList.append( Child() )
-    runTarget.append( Point( 0, 0 ) )
-    runTimer.append( 0 )
+    cList.append( Child(i) )
 
 turnNum = string.atoi( sys.stdin.readline() )
 while turnNum >= 0:
@@ -420,26 +419,10 @@ while turnNum >= 0:
         if c.pos.x >= 0:
             ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD
 
-    runTarget[0].set(7,22)
-    runTarget[1].set(22,22)
-    runTarget[2].set(7,7)
-    runTarget[3].set(22,7)
-
     # Decide what each child should do
     for i in range( CCOUNT ):
         c = cList[ i ]
         m = Move()
-
-        # if mode = 0 (go to target)
-        if c.mode == 0:
-            if c.pos == runTarget[i]:  # in position
-                vics = victims_in_range(c, cList)
-                if len(vics) == 0:
-                    # no victims right now, make a snowman!
-                    c.mode = 1
-                    # first, drop the snowball we should be carrying.
-                    m.action = "drop"
-                    m.dest = Point(c.pos.x + 1, c.pos.y)
 
         # Try to acquire a snowball if we need one.
         if c.holding != HOLD_S1:
@@ -478,7 +461,7 @@ while turnNum >= 0:
             # If nothing else to do, try to move somewhere
             if m.action == "idle":
                 if c.dazed == 0:
-                    moveToward( c, runTarget[ i ], m )
+                    moveToward( c, c.target, m )
 
 
         # Write out the child's move
