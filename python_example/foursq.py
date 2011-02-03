@@ -293,7 +293,7 @@ def victims_in_range(c, cList):
             dsq = dx * dx + dy * dy
 
             if dsq < 8 * 8:
-                vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed,j))
+                vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed,cList[j].standing,j))
         j += 1
     return vics
 
@@ -313,12 +313,52 @@ def choose_victim(vics):
     return vics[0]
 
 def target_victim(c, vic, m):
-    m.action = "throw"
-    # throw past the victim, so we will probably hit them
-    # before the snowball falls into the snow.
-    m.dest = Point( c.pos.x + vic[0] * 2,
-                    c.pos.y + vic[1] * 2 )
-    # but if something's in the way, like a tree, 
+    global ground
+    global height
+    steps = max(abs(vic[0] * 2), abs(vic[1] * 2))
+    if c.standing:
+        start_height = 9
+    else:
+        start_height = 6
+
+    if vic[5]:
+        vic_height = 9
+    else:
+        vic_height = 6
+
+    take_the_shot = False
+    # for each step 1 to steps
+    for s in range(1,steps+1):
+        # calculate height
+        height_at_step_s = start_height - int(round((9 * s)/steps))
+        # calculate position it will be at...
+        atx = c.pos.x + int(round( ( s * ( vic[0] ) )/steps ))
+        aty = c.pos.y + int(round( ( s * ( vic[1] ) )/steps ))
+
+        # if anything we don't want to hit at this point
+        # including the ground, abort!
+        if ground[atx][aty] == GROUND_TREE:
+            break
+
+        # if something we do want to hit.  Take the shot!!!
+        if ground[atx][aty] == GROUND_CHILD_BLUE:
+            take_the_shot = True
+
+        # a blue snow man is ok, only if we are going to hit it in the head
+        # a red snowman is ok, only if we throw over it..
+
+        # if we went through all that, and we didn't hit anything, 
+        # (maybe it would pass over the target) 
+        # then don't take the shot either.
+
+    if take_the_shot:
+        m.action = "throw"
+        # throw past the victim, so we will probably hit them
+        # before the snowball falls into the snow.
+        m.dest = Point( c.pos.x + vic[0] * 2,
+                        c.pos.y + vic[1] * 2 )
+
+    # TODO: but if something's in the way, like a tree, 
     # or a snowman that we can't throw over
     # or your own guy (although your own guy could move in this turn?), 
     # then it doesnt make sense to throw, because it will just be
@@ -536,14 +576,10 @@ while turnNum >= 0:
                         vic = choose_victim(vics)
                         # set action to throw and set the dest.
                         target_victim(c, vic, m)
-                        c.last_victim = vic[5]
+                        c.last_victim = vic[6]
                     else:
                         # TODO: Look for any almost complete snowmen near by that
                         # we can run to in one step and complete?
-
-                        # TODO: You can also crouch and pick up the top snowball from the 
-                        # stack, thereby destroying the enemy snowman. Make sure to
-                        # do this only for blue snowmen!
 
                         # are we at our target?
                         if c.reached_target == True:
