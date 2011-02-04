@@ -211,24 +211,21 @@ def moveToward( c, target, m ):
 # show height of thrown snowball for each step up to n steps.
 def show_heights(h, n):
     for t in range(n+1):
-        height = h - round((9 * t)/n)
+        height = h - int(round(float(9 * t)/float(n)))
         print height
-
-def dist(dx, dy):
-    return math.sqrt(dx * dx + dy * dy)
-
-def can_c_hit_snowman_head(c, sx, sy, height):
-    dx = abs(c.pos.x - sx)
-    dy = abs(c.pos.y - sy)
-    steps = max(dx, dy)
-
-    # At time t/n, the entity moves to integer location 
-    # ( x1 + round( ( t ( x2 - x1 ) )/n ), y1 + round( ( t ( y2 - y1 ) )/n ) )
 
 # is the path one that can be walked and/or thrown
 # if there is a tree or child in the way, it can't.
 def good_path(x1,y1,x2,y2):
     pass
+
+def find_child_at(x1,y1,cList):
+    i = 0
+    while i < CCOUNT * 2:
+        if cList[i].pos.x == x1 and cList[i].pos.y == y1:
+            return i
+    return -1
+ 
 
 def random_movement(c):
     if c.standing:
@@ -312,7 +309,7 @@ def choose_victim(vics):
     vics.sort(lambda x,y:cmp(x[3],y[3]), reverse=True)  # holding.  
     return vics[0]
 
-def target_victim(c, vic, m):
+def target_victim(c, cList, vic, m):
     global ground
     global height
     steps = max(abs(vic[0] * 2), abs(vic[1] * 2))
@@ -335,9 +332,21 @@ def target_victim(c, vic, m):
         atx = c.pos.x + int(round( float( s * ( vic[0] * 2 ) )/float(steps) ))
         aty = c.pos.y + int(round( float( s * ( vic[1] * 2 ) )/float(steps) ))
 
+        # have to do... 
+        # if ground[atx][aty] == child (red or blue).. the find out which one
+
+        #cindex = find_child_at(atx, aty, cList)
+        #child_height = 0
+        #if cindex >= 0:
+        #    child_height = 6
+        #    if cList[cindex].standing:
+        #        child_height = 9
+
         # if anything we don't want to hit at this point
         # including the ground, abort!
         if (ground[atx][aty] == GROUND_TREE or
+            ground[atx][aty] == GROUND_CHILD_RED or  # don't take a chance
+            # TODO: might be ok, if player on our team is crouching.
             (height[atx][aty] >= 0 and    # we know the height  and...
              (height_at_step_s < height[atx][aty]  or
               (height_at_step_s == height[atx][aty] and
@@ -422,20 +431,8 @@ def look_for_small_snowball(c):
 def look_for_snow(c):
     return look_for(c, snow_matcher)
 
-def stand_and_throw(c, m):
-    # Stand up if the child is armed.
-    if not c.standing:
-        m.action = "stand"
-    else:
-        # find potential victims.
-        vics = victims_in_range(c, cList)
-        if len(vics) > 0:
-            # choose the best one.
-            # throw at that one.
-            target_victim(c, choose_victim(vics), m)
-
 # TODO:
-# function: can I get next to it in one run?
+# function: can I get next to it(matcher) in one run?
 
 
 ########################################################################################
@@ -580,7 +577,7 @@ while turnNum >= 0:
                         # choose the best one.
                         vic = choose_victim(vics)
                         # set action to throw and set the dest.
-                        target_victim(c, vic, m)
+                        target_victim(c, cList, vic, m)
                         c.last_victim = vic[6]
                     else:
                         # TODO: Look for any almost complete snowmen near by that
