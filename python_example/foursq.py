@@ -330,18 +330,18 @@ def target_victim(c, vic, m):
     # for each step 1 to steps
     for s in range(1,steps+1):
         # calculate height
-        height_at_step_s = start_height - int(round((9 * s)/steps))
+        height_at_step_s = start_height - int(round(float(9 * s)/float(steps)))
         # calculate position it will be at...
-        atx = c.pos.x + int(round( ( s * ( vic[0] ) )/steps ))
-        aty = c.pos.y + int(round( ( s * ( vic[1] ) )/steps ))
+        atx = c.pos.x + int(round( float( s * ( vic[0] * 2 ) )/float(steps) ))
+        aty = c.pos.y + int(round( float( s * ( vic[1] * 2 ) )/float(steps) ))
 
         # if anything we don't want to hit at this point
         # including the ground, abort!
         if (ground[atx][aty] == GROUND_TREE or
             (height[atx][aty] >= 0 and    # we know the height  and...
-             (height_at_step_s < height[atx][aty]))): # or
-             # (height_at_step_s == height[atx][aty] and
-             #  ground[atx][aty] != GROUND_SMB)))):
+             (height_at_step_s < height[atx][aty]  or
+              (height_at_step_s == height[atx][aty] and
+               ground[atx][aty] != GROUND_SMB)))):
             break
 
         # if something we do want to hit.  Take the shot!!!

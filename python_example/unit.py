@@ -360,6 +360,51 @@ def look_for_small_snowball(c):
 def look_for_snow(c):
     return look_for(c, snow_matcher)
 
+def xy_for_step_s(c, s, dx, dy, steps):
+    atx = c.pos.x + int(round( float( s * ( dx ) )/float(steps) ))
+    aty = c.pos.y + int(round( float( s * ( dy ) )/float(steps) ))
+    return (atx, aty)
+
+class TestTargeter(unittest.TestCase):
+    def setUp(self):
+        init_ground();
+        self.c = Child()
+        self.c.pos = Point(15,15)  # middle
+
+    def testRight(self):
+        for i in range(0, 11):
+            self.assertEqual((15+i,15), xy_for_step_s(self.c, i, 10, 0, 10))
+        #self.assertEqual((2,1), xy_for_step_s(self.c, 1, 10, 0, 10))
+        #self.assertEqual((3,1), xy_for_step_s(self.c, 1, 10, 0, 10))
+        
+    def testLeft(self):
+        for i in range(0, 11):
+            self.assertEqual((15-i,15), xy_for_step_s(self.c, i, -10, 0, 10))
+
+    def testUp(self):
+        for i in range(0, 11):
+            self.assertEqual((15,15+i), xy_for_step_s(self.c, i, 0, 10, 10))
+
+    def testDown(self):
+        for i in range(0, 11):
+            self.assertEqual((15,15-i), xy_for_step_s(self.c, i, 0, -10, 10))
+
+    def testDiag(self):
+        #loc = []
+        for i in range(0, 11):
+            self.assertEqual((15+i,15+i), xy_for_step_s(self.c, i, 10, 10, 10))
+
+    def testDiag2(self):
+        loc = [ (15,15),(16,15),(17,15),(18,15),(19,16),(20,16),(21,16),(22,16) ]
+        for i in range(0, 8):
+            self.assertEqual((loc[i][0],loc[i][1]), 
+                             xy_for_step_s(self.c, i, 14, 2, 14))
+
+
+#             T   B
+#   R g g g g g g g
+#
+
 class TestSnow(unittest.TestCase):
     def setUp(self):
         init_ground()
