@@ -423,6 +423,10 @@ def snow_matcher(ox, oy):
 def almost_snowman(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_LM)
 
+def blue_snowman(ox, oy):
+    return (ground[ ox ][ oy ] == GROUND_SMB)
+
+
 def look_for(c, matcher):
     for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
         for ox in range( c.pos.x + 1, c.pos.x - 2, -1 ):
@@ -449,7 +453,6 @@ def check_list_of_positions(c, l, matcher):
     return (-1, -1)
     
 
-# TODO:
 # function: can I get next to it in one crawl?
 # if child at P, N are the locations child can crawl to,
 # so C are the (new) locations that the child can pickup or drop from.
@@ -486,6 +489,63 @@ def can_crawl_to(c, matcher):
         
 # TODO:
 # can_run_to(c, matcher)
+# depending on which spot, N, you can run to, check certain spots, C, for 
+# whatever we are trying to match.
+#     C C C
+#   C C N C C
+# C C N N N C C
+# C N N P N N C
+# C C N N N C C
+#   C C N C C
+#     C C C
+#
+
+def can_run_to(c, matcher):
+    if can_move(c.pos.x+1,c.pos.y+1):
+        px, py = check_list_of_positions(c, [(0,2),(1,2),(2,2),(2,1),(2,0)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if can_move(c.pos.x+1,c.pos.y-1):
+        px, py = check_list_of_positions(c, [(2,0),(2,-1),(2,-2),(1,-2),(0,-2)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if can_move(c.pos.x-1,c.pos.y-1):
+        px, py = check_list_of_positions(c, [(0,-2),(-1,-2),(-2,-2),(-2,-1),(-2,0)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if can_move(c.pos.x-1,c.pos.y+1):
+        px, py = check_list_of_positions(c, [(-2,0),(-2,1),(-2,2),(-1,2),(0,2)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if (can_move(c.pos.x,c.pos.y+1) and
+        can_move(c.pos.x,c.pos.y+2)):
+        px, py = check_list_of_positions(c, [(-1,2),(-1,3),(0,3),(1,3),(1,2)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if (can_move(c.pos.x+1,c.pos.y) and
+        can_move(c.pos.x+2,c.pos.y)):
+        px, py = check_list_of_positions(c, [(2,1),(3,1),(3,0),(3,-1),(2,-1)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if (can_move(c.pos.x,c.pos.y-1) and
+        can_move(c.pos.x,c.pos.y-2)):
+        px, py = check_list_of_positions(c, [(1,-2),(1,-3),(0,-3),(-1,-3),(-1,-2)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    if (can_move(c.pos.x-1,c.pos.y) and
+        can_move(c.pos.x-2,c.pos.y)):
+        px, py = check_list_of_positions(c, [(-2,-1),(-3,-1),(-3,0),(-3,1),(-2,1)], matcher)
+        if px >= 0:
+            return (px, py)
+
+    return (-1, -1)
 
 def acquire_small_snowball(i, c, cList, m):
     # Crush into a snowball, if we have snow.
@@ -495,6 +555,8 @@ def acquire_small_snowball(i, c, cList, m):
         if not c.standing:
             # can I crawl to a snowball near by, including (especially)
             # completed snowman of the blue team!
+
+            # TODO: First priority should be blue snowman!
             sx, sy = can_crawl_to(c, snowball_matcher)
             if sx >= 0:
                 m.action = "crawl"
@@ -509,18 +571,21 @@ def acquire_small_snowball(i, c, cList, m):
                     m.dest = Point(c.pos.x, c.pos.y + 1)
                 else:
                     m.dest = Point(c.pos.x, c.pos.y - 1)
+        else:
+            # else, I'm standing.  can I run to a blue snowman near by?
+            sx, sy = can_run_to(c, blue_snowman)
+            if sx >= 0:
+                moveToward(c, Point(sx,sy), m)
 
-        # TODO.. else, I'm standing.  can I run to a snowball nere by?
-        #  BUT yet, things that are close by should be first priority! 
+        #  BUT yet, things that are close by should be first priority?
 
         # if not going to crawl (or run) somewhere...
         if m.action == "idle":
+
+            # TODO: First priority should be blue snowman!
             sx, sy = look_for_small_snowball(c)
 
             if sx == -1:
-                # is there a snowball (including blue snowman) that I can
-                # crawl or run to?
-
                 sx, sy = look_for_snow(c)
 
             # If there is a small snowball or snow, try to get it.
@@ -542,6 +607,29 @@ def acquire_small_snowball(i, c, cList, m):
                 # move randomly to try to find some small snowballs or snow
                 valid_random_movement(c,m)
 
+
+def finish_nearby_snowman_or_stand(c, m):
+    # Child is holding one (or more!) small snow ball.
+
+    # If next to any space containing a medium on a large,
+    # finish the snowman for our team!
+    sx, sy = look_for(c, almost_snowman)
+    if sx >= 0:
+        m.action = "drop"
+        m.dest = Point(sx,sy)
+    else:
+        # Stand up if the child is armed.
+        if not c.standing:
+
+            # Is there a snowman within crawling range that I can 
+            # finish for my team?
+            sx, sy = can_crawl_to(c, almost_snowman)
+            if sx >= 0:
+                m.action = "crawl"
+                m.dest = Point(c.pos.x + ((sx - c.pos.x)/2),
+                               c.pos.y + ((sy - c.pos.y)/2))
+            else:
+                m.action = "stand"
 
 ########################################################################################
 
@@ -640,66 +728,51 @@ while turnNum >= 0:
         elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
             acquire_small_snowball(i, c, cList, m)
         else:
-            # Child is holding one (or more!) small snow ball.
+            finish_nearby_snowman_or_stand(c, m)
 
-            # If next to any space containing a medium on a large,
-            # finish the snowman for our team!
-            sx, sy = look_for(c, almost_snowman)
-            if sx >= 0:
-                m.action = "drop"
-                m.dest = Point(sx,sy)
-            else:
-                # Stand up if the child is armed.
-                if not c.standing:
-
-                    # Is there a snowman within crawling range that I can 
-                    # finish for my team?
-                    sx, sy = can_crawl_to(c, almost_snowman)
-                    if sx >= 0:
-                        m.action = "crawl"
-                        m.dest = Point(c.pos.x + ((sx - c.pos.x)/2),
-                                       c.pos.y + ((sy - c.pos.y)/2))
-                    else:
-                        m.action = "stand"
+            if m.action == "idle":
+                # find potential victims.
+                vics = victims_in_range(c, cList)
+                if len(vics) > 0:
+                    # choose the best one.
+                    vic = choose_victim(vics)
+                    # set action to throw and set the dest.
+                    target_victim(c, cList, vic, m)
+                    c.last_victim = vic[6]
                 else:
-                    # find potential victims.
-                    vics = victims_in_range(c, cList)
-                    if len(vics) > 0:
-                        # choose the best one.
-                        vic = choose_victim(vics)
-                        # set action to throw and set the dest.
-                        target_victim(c, cList, vic, m)
-                        c.last_victim = vic[6]
-                    else:
-                        # TODO: Look for any almost complete snowmen near by that
-                        # we can run to in one step and complete?
+                    # TODO: Look for any almost complete snowmen near by that
+                    # we can run to in one step and complete?
 
-                        # are we at our target?
-                        if c.reached_target == True:
-                            # now go free range...
-                            if c.last_victim > 0:
-                                # do we know where he is now?
-                                if cList[c.last_victim].pos.x >= 0:
-                                    # move towards him
-                                    moveToward(c, Point(cList[c.last_victim].pos.x,
-                                                        cList[c.last_victim].pos.y), m)
-                                else:
-                                    if cList[c.last_victim].last_known.x >= 0:
-                                        moveToward(c, 
-                                                   Point(cList[c.last_victim].last_known.x,
-                                                         cList[c.last_victim].last_known.y), m)
-                                    else:
-                                        moveToAverage(c, cList, m)
+                    # are we at our target?
+                    if c.reached_target == True:
+
+                        # TODO:  If we are within 4*4+4*4 of any almost complete 
+                        # or blue snowman, that should be our new target.
+
+                        # now go free range...
+                        if c.last_victim > 0:
+                            # do we know where he is now?
+                            if cList[c.last_victim].pos.x >= 0:
+                                # move towards him
+                                moveToward(c, Point(cList[c.last_victim].pos.x,
+                                                    cList[c.last_victim].pos.y), m)
                             else:
-                                moveToAverage(c, cList, m)
+                                if cList[c.last_victim].last_known.x >= 0:
+                                    moveToward(c, 
+                                               Point(cList[c.last_victim].last_known.x,
+                                                     cList[c.last_victim].last_known.y), m)
+                                else:
+                                    moveToAverage(c, cList, m)
                         else:
-                            if c.pos == c.target:
-                                c.reached_target = True
+                            moveToAverage(c, cList, m)
+                    else:
+                        if c.pos == c.target:
+                            c.reached_target = True
 
-                # If nothing else to do, try to move somewhere
-                if m.action == "idle":
-                    if c.dazed == 0:
-                        moveToward( c, c.target, m )
+            # If nothing else to do, try to move somewhere
+            if m.action == "idle":
+                if c.dazed == 0:
+                    moveToward( c, c.target, m )
 
         # TODO: avoid a attempt to move into the same space as well.
 
