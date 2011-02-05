@@ -405,6 +405,48 @@ class TestTargeter(unittest.TestCase):
 #   R g g g g g g g
 #
 
+class TestCrawling(unittest.TestCase):
+    def setUp(self):
+        init_ground()
+        self.c = Child()
+        self.c.pos.x = 15
+        self.c.pos.y = 15
+
+    def make_p(self, sx, sy):
+        return Point(self.c.pos.x + ((sx - self.c.pos.x)/2),
+                     self.c.pos.y + ((sy - self.c.pos.y)/2))   
+
+    def testUR(self):
+        p = self.make_p(15+1, 15+2)
+        self.assertEqual(Point(15,16), p)
+    def testU(self):
+        p = self.make_p(15, 15+2)
+        self.assertEqual(Point(15,16), p)
+    def testUL(self):
+        p = self.make_p(15-1, 15+2)
+        self.assertEqual(Point(15,16), p)
+
+    def testRU(self):
+        p = self.make_p(15+2, 15+1)
+        self.assertEqual(Point(16,15), p)
+    def testR(self):
+        p = self.make_p(15+2, 15)
+        self.assertEqual(Point(16,15), p)
+    def testRD(self):
+        p = self.make_p(15+2, 15-1)
+        self.assertEqual(Point(16,15), p)
+        
+    def testDR(self):
+        p = self.make_p(15+1, 15-2)
+        self.assertEqual(Point(15,14), p)
+    def testD(self):
+        p = self.make_p(15, 15-2)
+        self.assertEqual(Point(15,14), p)
+    def testDL(self):
+        p = self.make_p(15-1, 15-2)
+        self.assertEqual(Point(15,14), p)
+        
+
 class TestSnow(unittest.TestCase):
     def setUp(self):
         init_ground()

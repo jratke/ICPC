@@ -601,24 +601,24 @@ while turnNum >= 0:
 
                         sx, sy = look_for_snow(c)
 
-                        # If there is a small snowball or snow, try to get it.
-                        if sx >= 0:
-                            if c.standing:
-                                m.action = "crouch"
-                            else:
-                                m.action = "pickup"
-                                m.dest = Point( sx, sy )
-
-                                # But, if a previous child is going to pick up 
-                                # from the same spot, then move randomly instead.
-                                if i > 0:
-                                    for prev_c_index in range(0, i):
-                                        if (cList[prev_c_index].last_action == "pickup" and
-                                            cList[prev_c_index].last_dest == m.dest):
-                                            valid_random_movement(c,m)
+                    # If there is a small snowball or snow, try to get it.
+                    if sx >= 0:
+                        if c.standing:
+                            m.action = "crouch"
                         else:
-                            # move randomly to try to find some small snowballs or snow
-                            valid_random_movement(c,m)
+                            m.action = "pickup"
+                            m.dest = Point( sx, sy )
+
+                            # But, if a previous child is going to pick up 
+                            # from the same spot, then move randomly instead.
+                            if i > 0:
+                                for prev_c_index in range(0, i):
+                                    if (cList[prev_c_index].last_action == "pickup" and
+                                        cList[prev_c_index].last_dest == m.dest):
+                                        valid_random_movement(c,m)
+                    else:
+                        # move randomly to try to find some small snowballs or snow
+                        valid_random_movement(c,m)
         else:
             # Child is holding one (or more!) small snow ball.
 
