@@ -446,6 +446,16 @@ class TestCrawling(unittest.TestCase):
         p = self.make_p(15-1, 15-2)
         self.assertEqual(Point(15,14), p)
         
+    def testLD(self):
+        p = self.make_p(15-2, 15-1)
+        self.assertEqual(Point(14,15), p)
+    def testL(self):
+        p = self.make_p(15-2, 15)
+        self.assertEqual(Point(14,15), p)
+    def testLU(self):
+        p = self.make_p(15-2, 15+1)
+        self.assertEqual(Point(14,15), p)
+        
 
 class TestSnow(unittest.TestCase):
     def setUp(self):

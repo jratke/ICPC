@@ -168,6 +168,10 @@ def moveOrRandom(c,px,py,m):
 
 # Fill in move m to move the child c twoard the given target location, either
 # crawling or running.
+
+# TODO: If running, you've got to check if it's valid to move through the 
+# middle space as well!
+
 def moveToward( c, target, m ):
     if c.standing:
         # Run to the destination
@@ -585,8 +589,17 @@ while turnNum >= 0:
                     sx, sy = can_crawl_to(c, snowball_matcher)
                     if sx >= 0:
                         m.action = "crawl"
-                        m.dest = Point(c.pos.x + ((sx - c.pos.x)/2),
-                                       c.pos.y + ((sy - c.pos.y)/2))
+
+                        dx = sx - c.pos.x
+                        dy = sy - c.pos.y
+                        if dx > 1:
+                            m.dest = Point(c.pos.x + 1, c.pos.y)
+                        elif dx < -1:
+                            m.dest = Point(c.pos.x - 1, c.pos.y)
+                        elif dy > 1:
+                            m.dest = Point(c.pos.x, c.pos.y + 1)
+                        else:
+                            m.dest = Point(c.pos.x, c.pos.y - 1)
 
                 # TODO.. else, I'm standing.  can I run to a snowball nere by?
                 #  BUT yet, things that are close by should be first priority! 
