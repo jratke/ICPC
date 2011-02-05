@@ -185,20 +185,68 @@ def moveToward( c, target, m ):
                 m.action = "run"
                 px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
                 py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
+
+                # TODO, be smarter about this... move toward target!
                 moveOrRandom(c,px,py,m)
             else:
                 # Run left or right
                 m.action = "run"
-                px = c.pos.x + clamp( target.x - c.pos.x, -2, 2 )
+                dx = clamp( target.x - c.pos.x, -2, 2 )
+                if dx >= 1:
+                    if not can_move(c.pos.x + 1, c.pos.y):
+                        # can't do it.  
+                        # we're already at target y, but try to move up or down!
+                        if can_move(c.pos.x, c.pos.y+1):
+                            m.dest = Point(c.pos.x, c.pos.y+1)
+                        elif can_move(c.pos.x, c.pos.y-1):
+                            m.dest = Point(c.pos.x, c.pos.y-1)
+                        else:
+                            m.action = "idle"
+                            return
+                elif dx <= -1:
+                    if not can_move(c.pos.x - 1, c.pos.y):
+                        # can't do it.  
+                        # we're already at target y, but try to move up or down!
+                        if can_move(c.pos.x, c.pos.y+1):
+                            m.dest = Point(c.pos.x, c.pos.y+1)
+                        elif can_move(c.pos.x, c.pos.y-1):
+                            m.dest = Point(c.pos.x, c.pos.y-1)
+                        else:
+                            m.action = "idle"
+                            return
+
+                px = c.pos.x + dx
                 py = c.pos.y
-                # Check both spaces!!! (closer one first)
                 moveOrRandom(c,px,py,m)
         elif c.pos.y != target.y:
             # Run up or down.
             m.action = "run"
+            dy = clamp( target.y - c.pos.y, -2, 2 )
+            if dy >= 1:
+                if not can_move(c.pos.x, c.pos.y+1):
+                    # can't do it.  
+                    # we're already at target y, but try to move left or right
+                    if can_move(c.pos.x+1, c.pos.y):
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):
+                        m.dest = Point(c.pos.x-1, c.pos.y)
+                    else:
+                        m.action = "idle"
+                        return
+            elif dy <= -1:
+                if not can_move(c.pos.x, c.pos.y-1):
+                    # can't do it.  
+                    # we're already at target y, but try to move left or right
+                    if can_move(c.pos.x+1, c.pos.y):
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):
+                        m.dest = Point(c.pos.x-1, c.pos.y)
+                    else:
+                        m.action = "idle"
+                        return
+
             px = c.pos.x 
-            py = c.pos.y + clamp( target.y - c.pos.y, -2, 2 )
-            # Check both spaces!!! (closer one first)
+            py = c.pos.y + dy
             moveOrRandom(c,px,py,m)
     else:
         # Crawl to the destination
@@ -215,18 +263,6 @@ def moveToward( c, target, m ):
             py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
             moveOrRandom(c,px,py,m)
 
-
-# show height of thrown snowball for each step up to n steps.
-def show_heights(h, n):
-    for t in range(n+1):
-        height = h - int(round(float(9 * t)/float(n)))
-        print height
-
-# is the path one that can be walked and/or thrown
-# if there is a tree or child in the way, it can't.
-def good_path(x1,y1,x2,y2):
-    pass
-
 def find_child_at(x1,y1,cList):
     i = 0
     while i < CCOUNT * 2:
@@ -234,7 +270,6 @@ def find_child_at(x1,y1,cList):
             return i
     return -1
  
-
 def random_movement(c):
     if c.standing:
         options = [(-2,0),(-1,0,),(-1,-1),(0,2),(0,1),(1,1),(1,0),(2,0),(1,-1),(0,-1),(0,-2),(-1,-1)]
@@ -342,7 +377,7 @@ def target_victim(c, cList, vic, m):
         aty = c.pos.y + int(round( float( s * ( vic[1] * 2 ) )/float(steps) ))
 
         # have to do... 
-        # if ground[atx][aty] == child (red or blue).. the find out which one
+        # if ground[atx][aty] == child (red or blue).. then find out which one
 
         #cindex = find_child_at(atx, aty, cList)
         #child_height = 0
@@ -713,6 +748,11 @@ while turnNum >= 0:
                 ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD_RED
             else:
                 ground[ c.pos.x ][ c.pos.y ] = GROUND_CHILD_BLUE
+
+
+    # TODO: come up with a list of targets?
+    # try to make it so that two children don't just have the same target.
+    # because there is no point in both hitting a child at the same time.
 
     # Decide what each child should do
     for i in range( CCOUNT ):
