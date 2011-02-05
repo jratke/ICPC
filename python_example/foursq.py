@@ -547,6 +547,18 @@ def can_run_to(c, matcher):
 
     return (-1, -1)
 
+def figure_crawl_dest(c, sx, sy, m):
+    dx = sx - c.pos.x
+    dy = sy - c.pos.y
+    if dx > 1:
+        m.dest = Point(c.pos.x + 1, c.pos.y)
+    elif dx < -1:
+        m.dest = Point(c.pos.x - 1, c.pos.y)
+    elif dy > 1:
+        m.dest = Point(c.pos.x, c.pos.y + 1)
+    else:
+        m.dest = Point(c.pos.x, c.pos.y - 1)
+
 def acquire_small_snowball(i, c, cList, m):
     # Crush into a snowball, if we have snow.
     if c.holding == HOLD_P1:
@@ -560,17 +572,7 @@ def acquire_small_snowball(i, c, cList, m):
             sx, sy = can_crawl_to(c, snowball_matcher)
             if sx >= 0:
                 m.action = "crawl"
-
-                dx = sx - c.pos.x
-                dy = sy - c.pos.y
-                if dx > 1:
-                    m.dest = Point(c.pos.x + 1, c.pos.y)
-                elif dx < -1:
-                    m.dest = Point(c.pos.x - 1, c.pos.y)
-                elif dy > 1:
-                    m.dest = Point(c.pos.x, c.pos.y + 1)
-                else:
-                    m.dest = Point(c.pos.x, c.pos.y - 1)
+                figure_crawl_dest(c, sx, sy, m)
         else:
             # else, I'm standing.  can I run to a blue snowman near by?
             sx, sy = can_run_to(c, blue_snowman)
@@ -626,8 +628,7 @@ def finish_nearby_snowman_or_stand(c, m):
             sx, sy = can_crawl_to(c, almost_snowman)
             if sx >= 0:
                 m.action = "crawl"
-                m.dest = Point(c.pos.x + ((sx - c.pos.x)/2),
-                               c.pos.y + ((sy - c.pos.y)/2))
+                figure_crawl_dest(c, sx, sy, m)
             else:
                 m.action = "stand"
 
