@@ -164,9 +164,9 @@ def moveOrRandom(c,px,py,m):
         m.dest = Point(px,py)
     else:
         valid_random_movement(c,m)
+
 # Fill in move m to move the child c twoard the given target location, either
 # crawling or running.
-
 def moveToward( c, target, m ):
     if c.standing:
         # Run to the destination
@@ -177,46 +177,51 @@ def moveToward( c, target, m ):
                 px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
                 py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
 
-                # TODO: need to check can move too!
-
-                # TODO, be smarter about this... move toward target!
-                moveOrRandom(c,px,py,m)
+                if can_move(px, py):
+                    m.dest = Point(px,py)
+                else:
+                    # just try up or down only
+                    if can_move(c.pos.x, py):
+                        m.dest = Point(c.pos.x,py)
+                    else:
+                        m.action = "idle"
+                        m.dest = None
             else:
-                print "run left or right\n"
                 # Run left or right
                 m.action = "run"
                 dx = clamp( target.x - c.pos.x, -2, 2 )
                 if dx >= 1:
-                    print "dx >= 1\n"
                     if not can_move(c.pos.x + 1, c.pos.y):
-                        print "can't move x+1\n"
                         # can't do it.  
-                        # we're already at target y, but try to move up or down!
-                        if can_move(c.pos.x, c.pos.y+1):
-                            m.dest = Point(c.pos.x, c.pos.y+1)
-                        elif can_move(c.pos.x, c.pos.y-1):
-                            m.dest = Point(c.pos.x, c.pos.y-1)
+                        # we're already at target y, but try to move diagonally
+                        if can_move(c.pos.x + 1, c.pos.y+1):
+                            m.dest = Point(c.pos.x + 1, c.pos.y+1)
+                        elif can_move(c.pos.x + 1, c.pos.y-1):
+                            m.dest = Point(c.pos.x + 1, c.pos.y-1)
                         else:
                             m.action = "idle"
+                            m.dest = None
                             return
+                    else:
+                        # can move two as well?
+                        if can_move(c.pos.x + 2, c.pos.y):
+                            # good, do it...
+                            m.dest = Point(c.pos.x + 2, c.pos.y)
+                        else:
+                            # just one will have to do
+                            m.dest = Point(c.pos.x + 1, c.pos.y)
                 elif dx <= -1:
-                    print "dy <= -1\n"
                     if not can_move(c.pos.x - 1, c.pos.y):
-                        print "can't move x-11\n"
                         # can't do it.  
-                        # we're already at target y, but try to move up or down!
-                        if can_move(c.pos.x, c.pos.y+1):
-                            m.dest = Point(c.pos.x, c.pos.y+1)
-                        elif can_move(c.pos.x, c.pos.y-1):
-                            m.dest = Point(c.pos.x, c.pos.y-1)
+                        # we're already at target y, but try to move diagonally
+                        if can_move(c.pos.x - 1, c.pos.y+1):
+                            m.dest = Point(c.pos.x - 1, c.pos.y+1)
+                        elif can_move(c.pos.x - 1, c.pos.y-1):
+                            m.dest = Point(c.pos.x - 1, c.pos.y-1)
                         else:
                             m.action = "idle"
+                            m.dest = None
                             return
-
-                px = c.pos.x + dx
-                py = c.pos.y
-                print "going to moveOrRandom\n"
-                moveOrRandom(c,px,py,m)
         elif c.pos.y != target.y:
             # Run up or down.
             m.action = "run"
@@ -224,29 +229,43 @@ def moveToward( c, target, m ):
             if dy >= 1:
                 if not can_move(c.pos.x, c.pos.y+1):
                     # can't do it.  
-                    # we're already at target y, but try to move left or right
-                    if can_move(c.pos.x+1, c.pos.y):
-                        m.dest = Point(c.pos.x+1, c.pos.y)
-                    elif can_move(c.pos.x-1, c.pos.y):
-                        m.dest = Point(c.pos.x-1, c.pos.y)
+                    # we're already at target x, but try to move diagonal
+                    if can_move(c.pos.x+1, c.pos.y+1):
+                        m.dest = Point(c.pos.x+1, c.pos.y+1)
+                    elif can_move(c.pos.x-1, c.pos.y+1):
+                        m.dest = Point(c.pos.x-1, c.pos.y+1)
                     else:
                         m.action = "idle"
+                        m.dest = None
                         return
+                else:
+                    # can move two as well?
+                    if can_move(c.pos.x, c.pos.y+2):
+                        # good, do it...
+                        m.dest = Point(c.pos.x, c.pos.y+2)
+                    else:
+                        # just one will have to do
+                        m.dest = Point(c.pos.x, c.pos.y+1)
             elif dy <= -1:
                 if not can_move(c.pos.x, c.pos.y-1):
                     # can't do it.  
-                    # we're already at target y, but try to move left or right
-                    if can_move(c.pos.x+1, c.pos.y):
-                        m.dest = Point(c.pos.x+1, c.pos.y)
-                    elif can_move(c.pos.x-1, c.pos.y):
-                        m.dest = Point(c.pos.x-1, c.pos.y)
+                    # we're already at target x, but try to move diagonal
+                    if can_move(c.pos.x+1, c.pos.y-1):
+                        m.dest = Point(c.pos.x+1, c.pos.y-1)
+                    elif can_move(c.pos.x-1, c.pos.y-1):
+                        m.dest = Point(c.pos.x-1, c.pos.y-1)
                     else:
                         m.action = "idle"
+                        m.dest = None
                         return
-
-            px = c.pos.x 
-            py = c.pos.y + dy
-            moveOrRandom(c,px,py,m)
+                else:
+                    # can move two as well?
+                    if can_move(c.pos.x, c.pos.y-2):
+                        # good, do it...
+                        m.dest = Point(c.pos.x, c.pos.y-2)
+                    else:
+                        # just one will have to do
+                        m.dest = Point(c.pos.x, c.pos.y-1)
     else:
         # Crawl to the destination
         if c.pos.x != target.x:
@@ -261,6 +280,7 @@ def moveToward( c, target, m ):
             px = c.pos.x 
             py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
             moveOrRandom(c,px,py,m)
+
 
 def find_child_at(x1,y1,cList):
     i = 0
@@ -506,14 +526,21 @@ class TestMovement(unittest.TestCase):
         ground[16][15] = GROUND_CHILD_RED
         m = Move()
         moveToward(self.c, Point(16,15), m)
-        self.checkMove("run", Point(15,16), m)  # expected, actual
+        self.checkMove("run", Point(16,16), m)  # expected, actual
 
     def testOtherChildToRightTargetRightTwo(self):
         self.c.standing = True
         ground[16][15] = GROUND_CHILD_RED
         m = Move()
         moveToward(self.c, Point(17,15), m)
-        self.checkMove("run", Point(15,16), m)  # expected, actual
+        self.checkMove("run", Point(16,16), m)  # expected, actual
+
+    def testCanOnlyMoveRightOne(self):
+        self.c.standing = True
+        ground[17][15] = GROUND_CHILD_RED
+        m = Move()
+        moveToward(self.c, Point(17,15), m)
+        self.checkMove("run", Point(16,15), m)  # expected, actual
 
 class TestCrawling(unittest.TestCase):
     def setUp(self):
