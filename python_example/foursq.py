@@ -472,6 +472,9 @@ def almost_snowman(ox, oy):
 def blue_snowman(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_SMB)
 
+def can_drop_here(ox, oy):
+    return (ground[ox][oy] == GROUND_EMPTY and
+            height[ox][oy] < 9)
 
 def look_for(c, matcher):
     for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
@@ -740,7 +743,7 @@ while turnNum >= 0:
     score[ RED ] = tokens[ 0 ]
     score[ BLUE ] = tokens[ 1 ]
 
-    smb_list = []
+    smb_list = []   # list of known blue snowmen, or potential snowmen.
     
     # Parse the current map.
     for i in range( SIZE ):
@@ -753,8 +756,9 @@ while turnNum >= 0:
             else:
                 height[ i ][ j ] = string.find( string.digits, tokens[ j ][ 0 ] )
                 ground[ i ][ j ] = string.find( string.ascii_lowercase, tokens[ j ][ 1 ] )
-                if ground[i][j] == GROUND_SMB:
-                    smb_list.append((i, j, height[i][j]))
+                if (ground[i][j] == GROUND_SMB or
+                    ground[i][j] == GROUND_LM):
+                    smb_list.append((i, j))  # height doesn't' matter anymore
                 
     # Read the states of all the children.
     for i in range( CCOUNT * 2 ):
@@ -829,43 +833,49 @@ while turnNum >= 0:
                         # should do something else.
 
             if m.action == "idle":
-                for sm in smb_list:
-                    dx = sm[0] - c.pos.x
-                    dy = sm[1] - c.pos.y
-                    if dx*dx <= 81 and dy*dy <= 81:
-                        s = return_steps_min_needed(sm[2], 9, max(abs(dx),abs(dy)))
-                        if s > 0:
-                            # we could theoretically hit it!
-                            sys.stderr.write("%d could hit sm at %d %d\n" % (i, sm[0], sm[1]))
-                            break
-
-            if m.action == "idle":
                 sx, sy = can_run_to(c, almost_snowman)
                 if sx >= 0:
                     moveToward(c, Point(sx,sy), m)
                 else:
-                    # are we at our target?
+                    # have we already reached our target at least once at some point?
                     if c.reached_target == True:
 
-                        # TODO:  If we are within 4*4+4*4 of any almost complete 
-                        # or blue snowman, that should be our new target.
+                        # am I within one of a blue snowman while holding a snowball?
+                        # have to drop it, temporarily, so I can convert that snowman.
+                        sx,sy = look_for(c, blue_snowman)
+                        if sx >= 0:
+                            sx,sy = look_for(c, can_drop_here)
+                            if sy >= 0:
+                                m.action = "drop"
+                                m.dest = Point(sx,sy)
 
-                        # now go free range...
-                        if c.last_victim > 0:
-                            # do we know where he is now?
-                            if cList[c.last_victim].pos.x >= 0:
-                                # move towards him
-                                moveToward(c, Point(cList[c.last_victim].pos.x,
-                                                    cList[c.last_victim].pos.y), m)
-                            else:
-                                if cList[c.last_victim].last_known.x >= 0:
-                                    moveToward(c, 
-                                               Point(cList[c.last_victim].last_known.x,
-                                                     cList[c.last_victim].last_known.y), m)
+                        if m.action == "idle":
+                            # If we are within 9x9 of any almost complete snowman 
+                            # or blue snowman, that should be our new target.
+                            for sm in smb_list:
+                                dx = sm[0] - c.pos.x
+                                dy = sm[1] - c.pos.y
+                                if dx*dx <= 81 and dy*dy <= 81:
+                                    moveToward(c, Point(sm[0], sm[1]), m)
+                                    break
+
+                        if m.action == "idle":
+                            # now go free range...
+                            if c.last_victim > 0:
+                                # do we know where he is now?
+                                if cList[c.last_victim].pos.x >= 0:
+                                    # move towards him
+                                    moveToward(c, Point(cList[c.last_victim].pos.x,
+                                                        cList[c.last_victim].pos.y), m)
                                 else:
-                                    moveToAverage(c, cList, m)
-                        else:
-                            moveToAverage(c, cList, m)
+                                    if cList[c.last_victim].last_known.x >= 0:
+                                        moveToward(c, 
+                                                   Point(cList[c.last_victim].last_known.x,
+                                                         cList[c.last_victim].last_known.y), m)
+                                    else:
+                                        moveToAverage(c, cList, m)
+                            else:
+                                moveToAverage(c, cList, m)
                     else:
                         if c.pos == c.target:
                             c.reached_target = True
