@@ -799,40 +799,41 @@ while turnNum >= 0:
                         cList[chosen_vic].targeted_by = i
 
             if m.action == "idle":
-                # TODO: Look for any almost complete snowmen near by that
-                # we can run to in one step and complete?
-
-                # are we at our target?
-                if c.reached_target == True:
-
-                    # TODO:  If we are within 4*4+4*4 of any almost complete 
-                    # or blue snowman, that should be our new target.
-
-                    # now go free range...
-                    if c.last_victim > 0:
-                        # do we know where he is now?
-                        if cList[c.last_victim].pos.x >= 0:
-                            # move towards him
-                            moveToward(c, Point(cList[c.last_victim].pos.x,
-                                                cList[c.last_victim].pos.y), m)
-                        else:
-                            if cList[c.last_victim].last_known.x >= 0:
-                                moveToward(c, 
-                                           Point(cList[c.last_victim].last_known.x,
-                                                 cList[c.last_victim].last_known.y), m)
-                            else:
-                                moveToAverage(c, cList, m)
-                    else:
-                        moveToAverage(c, cList, m)
+                sx, sy = can_run_to(c, almost_snowman)
+                if sx >= 0:
+                    moveToward(c, Point(sx,sy), m)
                 else:
-                    if c.pos == c.target:
-                        c.reached_target = True
-                        # TODO, do something better...
-                        #valid_random_movement(c, m)
-                        moveToward(c, Point(15,15), m)
+                    # are we at our target?
+                    if c.reached_target == True:
+
+                        # TODO:  If we are within 4*4+4*4 of any almost complete 
+                        # or blue snowman, that should be our new target.
+
+                        # now go free range...
+                        if c.last_victim > 0:
+                            # do we know where he is now?
+                            if cList[c.last_victim].pos.x >= 0:
+                                # move towards him
+                                moveToward(c, Point(cList[c.last_victim].pos.x,
+                                                    cList[c.last_victim].pos.y), m)
+                            else:
+                                if cList[c.last_victim].last_known.x >= 0:
+                                    moveToward(c, 
+                                               Point(cList[c.last_victim].last_known.x,
+                                                     cList[c.last_victim].last_known.y), m)
+                                else:
+                                    moveToAverage(c, cList, m)
+                        else:
+                            moveToAverage(c, cList, m)
                     else:
-                        if c.dazed == 0:
-                            moveToward( c, c.target, m )
+                        if c.pos == c.target:
+                            c.reached_target = True
+                            # TODO, do something better...
+                            #valid_random_movement(c, m)
+                            moveToward(c, Point(15,15), m)
+                        else:
+                            if c.dazed == 0:
+                                moveToward( c, c.target, m )
 
         # TODO: avoid a attempt to move into the same space as well.
 
