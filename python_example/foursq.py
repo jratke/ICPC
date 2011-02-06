@@ -702,6 +702,8 @@ def acquire_small_snowball(i, c, cList, m):
                         for prev_c_index in range(0, i):
                             if (cList[prev_c_index].last_action == "pickup" and
                                 cList[prev_c_index].last_dest == m.dest):
+                                # TODO: do better... don't move into a space 
+                                # where somebody else is trying to pickup something!
                                 valid_random_movement(c,m)
             else:
                 # move randomly to try to find some small snowballs or snow
@@ -923,8 +925,17 @@ while turnNum >= 0:
                             if c.dazed == 0:
                                 moveToward( c, c.target, m )
 
-        # TODO: avoid a attempt to move into the same space as well.
-        # TODO: and avoid drop attempts to the same location!!!  one has to idle!!
+        # avoid an attempt to move into the same space.
+        # avoid drop attempts to the same location!  one has to idle!!
+        if i > 0:
+            for prev_c_index in range(0, i):
+                if (#(m.action == "drop" and cList[prev_c_index].last_action == "drop" and
+                    # m.dest == cList[prev_c_index].last_dest) or
+                    #((m.action == "crawl" or m.action == "run") and
+                    ((m.action == "crawl" or m.action == "run" or m.action == "drop") and
+                     m.dest == cList[prev_c_index].last_dest)):
+                    m.action = "idle"
+                    m.dest = None
 
         c.last_action = m.action
 
