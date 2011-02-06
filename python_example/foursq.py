@@ -614,16 +614,14 @@ def acquire_small_snowball(i, c, cList, m):
         m.action = "crush"
     else:
         if not c.standing:
-            # can I crawl to a snowball near by, including (especially)
-            # completed snowman of the blue team!
+            sx, sy = can_crawl_to(c, blue_snowman)
+            if sx == -1:
+                sx, sy = can_crawl_to(c, snowball_matcher)
 
-            # TODO: First priority should be blue snowman!
-            sx, sy = can_crawl_to(c, snowball_matcher)
             if sx >= 0:
                 m.action = "crawl"
                 figure_crawl_dest(c, sx, sy, m)
         else:
-            # else, I'm standing.  can I run to a blue snowman near by?
             sx, sy = can_run_to(c, blue_snowman)
             if sx >= 0:
                 moveToward(c, Point(sx,sy), m)
@@ -633,8 +631,9 @@ def acquire_small_snowball(i, c, cList, m):
         # if not going to crawl (or run) somewhere...
         if m.action == "idle":
 
-            # TODO: First priority should be blue snowman!
-            sx, sy = look_for_small_snowball(c)
+            sx, sy = look_for(c, blue_snowman)
+            if sy == -1:
+                sx, sy = look_for_small_snowball(c)
 
             if sx == -1:
                 sx, sy = look_for_snow(c)
