@@ -67,7 +67,35 @@ MAX_PILE = 9
 OBSTACLE_HEIGHT = 6
 
 # Constant used to mark child locations in the map, not used in this player.
-GROUND_CHILD = 10
+GROUND_CHILD_RED = 10
+GROUND_CHILD_BLUE = 11
+
+# Source of randomness
+rnd = random.Random()
+
+# Current game score for self (red) and opponent (blue).
+score = [ 0, 0 ]
+
+# Current snow height in each cell.
+height = []
+
+# Contents of each cell.
+ground = []
+
+# Allocate the whole field.  Is there a better way to do this?
+for i in range( SIZE ):
+    height.append( [ 0 ] * SIZE )
+    ground.append( [ 0 ] * SIZE )
+
+# List of children on the field, half for each team.
+cList = []
+
+# Random destination for each player.
+runTarget = []
+
+# How long the child has left to run toward its destination.
+runTimer = []
+
 
 # Representation of a 2D point, used for playing field locations.
 class Point:
@@ -136,9 +164,9 @@ def moveOrRandom(c,px,py,m):
         m.dest = Point(px,py)
     else:
         valid_random_movement(c,m)
-
 # Fill in move m to move the child c twoard the given target location, either
 # crawling or running.
+
 def moveToward( c, target, m ):
     if c.standing:
         # Run to the destination
@@ -148,20 +176,76 @@ def moveToward( c, target, m ):
                 m.action = "run"
                 px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
                 py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
+
+                # TODO: need to check can move too!
+
+                # TODO, be smarter about this... move toward target!
                 moveOrRandom(c,px,py,m)
             else:
+                print "run left or right\n"
                 # Run left or right
                 m.action = "run"
-                px = c.pos.x + clamp( target.x - c.pos.x, -2, 2 )
+                dx = clamp( target.x - c.pos.x, -2, 2 )
+                if dx >= 1:
+                    print "dx >= 1\n"
+                    if not can_move(c.pos.x + 1, c.pos.y):
+                        print "can't move x+1\n"
+                        # can't do it.  
+                        # we're already at target y, but try to move up or down!
+                        if can_move(c.pos.x, c.pos.y+1):
+                            m.dest = Point(c.pos.x, c.pos.y+1)
+                        elif can_move(c.pos.x, c.pos.y-1):
+                            m.dest = Point(c.pos.x, c.pos.y-1)
+                        else:
+                            m.action = "idle"
+                            return
+                elif dx <= -1:
+                    print "dy <= -1\n"
+                    if not can_move(c.pos.x - 1, c.pos.y):
+                        print "can't move x-11\n"
+                        # can't do it.  
+                        # we're already at target y, but try to move up or down!
+                        if can_move(c.pos.x, c.pos.y+1):
+                            m.dest = Point(c.pos.x, c.pos.y+1)
+                        elif can_move(c.pos.x, c.pos.y-1):
+                            m.dest = Point(c.pos.x, c.pos.y-1)
+                        else:
+                            m.action = "idle"
+                            return
+
+                px = c.pos.x + dx
                 py = c.pos.y
-                # Check both spaces!!! (closer one first)
+                print "going to moveOrRandom\n"
                 moveOrRandom(c,px,py,m)
         elif c.pos.y != target.y:
             # Run up or down.
             m.action = "run"
+            dy = clamp( target.y - c.pos.y, -2, 2 )
+            if dy >= 1:
+                if not can_move(c.pos.x, c.pos.y+1):
+                    # can't do it.  
+                    # we're already at target y, but try to move left or right
+                    if can_move(c.pos.x+1, c.pos.y):
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):
+                        m.dest = Point(c.pos.x-1, c.pos.y)
+                    else:
+                        m.action = "idle"
+                        return
+            elif dy <= -1:
+                if not can_move(c.pos.x, c.pos.y-1):
+                    # can't do it.  
+                    # we're already at target y, but try to move left or right
+                    if can_move(c.pos.x+1, c.pos.y):
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):
+                        m.dest = Point(c.pos.x-1, c.pos.y)
+                    else:
+                        m.action = "idle"
+                        return
+
             px = c.pos.x 
-            py = c.pos.y + clamp( target.y - c.pos.y, -2, 2 )
-            # Check both spaces!!! (closer one first)
+            py = c.pos.y + dy
             moveOrRandom(c,px,py,m)
     else:
         # Crawl to the destination
@@ -178,29 +262,13 @@ def moveToward( c, target, m ):
             py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
             moveOrRandom(c,px,py,m)
 
-
-# show height of thrown snowball for each step up to n steps.
-def show_heights(h, n):
-    for t in range(n+1):
-        height = h - round((9 * t)/n)
-        print height
-
-def dist(dx, dy):
-    return math.sqrt(dx * dx + dy * dy)
-
-def can_c_hit_snowman_head(c, sx, sy, height):
-    dx = abs(c.pos.x - sx)
-    dy = abs(c.pos.y - sy)
-    steps = max(dx, dy)
-
-    # At time t/n, the entity moves to integer location 
-    # ( x1 + round( ( t ( x2 - x1 ) )/n ), y1 + round( ( t ( y2 - y1 ) )/n ) )
-
-# is the path one that can be walked and/or thrown
-# if there is a tree or child in the way, it can't.
-def good_path(x1,y1,x2,y2):
-    pass
-
+def find_child_at(x1,y1,cList):
+    i = 0
+    while i < CCOUNT * 2:
+        if cList[i].pos.x == x1 and cList[i].pos.y == y1:
+            return i
+    return -1
+ 
 def random_movement(c):
     if c.standing:
         options = [(-2,0),(-1,0,),(-1,-1),(0,2),(0,1),(1,1),(1,0),(2,0),(1,-1),(0,-1),(0,-2),(-1,-1)]
@@ -221,7 +289,8 @@ def can_move(px, py):
         # no trees or children
         height[px][py] < 6 and 
         ground[px][py] != GROUND_TREE and
-        ground[px][py] != GROUND_CHILD and
+        ground[px][py] != GROUND_CHILD_RED and
+        ground[px][py] != GROUND_CHILD_BLUE and
         ground[px][py] != GROUND_SMR and     # these last two probably redundant
         ground[px][py] != GROUND_SMB):
         return True
@@ -296,32 +365,6 @@ def target_victim(c, vic, m):
 
 
 ########################################################################################
-
-# Source of randomness
-rnd = random.Random()
-
-# Current game score for self (red) and opponent (blue).
-score = [ 0, 0 ]
-
-# Current snow height in each cell.
-height = []
-
-# Contents of each cell.
-ground = []
-
-# Allocate the whole field.  Is there a better way to do this?
-for i in range( SIZE ):
-    height.append( [ 0 ] * SIZE )
-    ground.append( [ 0 ] * SIZE )
-
-# List of children on the field, half for each team.
-cList = []
-
-# Random destination for each player.
-runTarget = []
-
-# How long the child has left to run toward its destination.
-runTimer = []
 
 for i in range( 2 * CCOUNT ):
     cList.append( Child() )
@@ -445,7 +488,32 @@ def show_x_y_height(sx, sy, dx, dy, start_height):
         print "height:",height_at_step_s," x:",atx," y:",aty 
 
 
+class TestMovement(unittest.TestCase):
+    def setUp(self):
+        init_ground()
+        self.c = Child()
+        self.c.pos.x = 15
+        self.c.pos.y = 15
 
+    def checkMove(self, action, dest, m):
+        print "actual action", m.action
+        print "actual dest ",m.dest.x," ", m.dest.y
+        self.assertEqual(action, m.action)
+        self.assertEqual(dest, m.dest)
+
+    def testOtherChildToRight(self):
+        self.c.standing = True
+        ground[16][15] = GROUND_CHILD_RED
+        m = Move()
+        moveToward(self.c, Point(16,15), m)
+        self.checkMove("run", Point(15,16), m)  # expected, actual
+
+    def testOtherChildToRightTargetRightTwo(self):
+        self.c.standing = True
+        ground[16][15] = GROUND_CHILD_RED
+        m = Move()
+        moveToward(self.c, Point(17,15), m)
+        self.checkMove("run", Point(15,16), m)  # expected, actual
 
 class TestCrawling(unittest.TestCase):
     def setUp(self):

@@ -855,7 +855,7 @@ while turnNum >= 0:
                     sx,sy = look_for(c, safe_drop)
                     if sx >= 0:
                         m.action = "drop"
-                        m.dest = Point(sy, sy)
+                        m.dest = Point(sx, sy)
 
         # Try to acquire a snowball if we need one.
         elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
@@ -932,7 +932,7 @@ while turnNum >= 0:
                             if c.dazed == 0:
                                 moveToward( c, c.target, m )
 
-        # avoid an attempt to move into the same space.
+        # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
         if i > 0:
             for prev_c_index in range(0, i):
