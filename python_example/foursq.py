@@ -145,7 +145,7 @@ class BlueChild(Child):
         self.color = BLUE
         # If pos of opponent is unknown, perhaps the last know pos
         # might be helpful.
-        self.last_known = Point(0, 0)
+        self.last_known = Point(-1, -1)
 
 
 # Simple representation for a child's action
@@ -422,6 +422,18 @@ def target_victim(c, cList, vic, m):
     # then it doesnt make sense to throw, because it will just be
     # blocked, or you will hit your own guy
 
+def find_average_and_move(c, locations, m):
+    # figure out the average
+    xsum = 0
+    ysum = 0
+    for j in locations:
+        xsum += j[0]
+        ysum += j[1]
+    xav = int(round(xsum / len(locations)))
+    yav = int(round(ysum / len(locations)))
+    # move toward it
+    moveToward(c, Point(xav, yav), m)
+
 def moveToAverage(c, cList, m):
     # come up with a list of known team members of the opposite team.
     locations = []
@@ -431,19 +443,18 @@ def moveToAverage(c, cList, m):
             locations.append( (cList[i].pos.x, cList[i].pos.y) )
     # now get the average 
     if len(locations) > 0:
-        # figure out the average
-        xsum = 0
-        ysum = 0
-        for j in locations:
-            xsum += j[0]
-            ysum += j[1]
-        xav = int(round(xsum / len(locations)))
-        yav = int(round(ysum / len(locations)))
-        # move toward it
-        moveToward(c, Point(xav, yav), m)
+        find_average_and_move(c, locations, m)
     else:
-        # random move.
-        valid_random_movement(c, m)
+        # we don't know where anyone is for sure, what about last knowns?
+        for i in range( CCOUNT, CCOUNT * 2 ):
+            if cList[i].last_known.x >= 0:
+                # we know where he was!
+                locations.append( (cList[i].last_known.x, cList[i].last_known.y) )
+        if len(locations) > 0:
+            find_average_and_move(c, locations, m)
+        else:
+            # random move.
+            valid_random_movement(c, m)
 
 def snowball_matcher(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_S or
