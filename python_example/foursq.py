@@ -147,6 +147,10 @@ class BlueChild(Child):
         # might be helpful.
         self.last_known = Point(-1, -1)
 
+        # The index of the child on the Red team, if any, that is
+        # targeting this child for a throw in this turn.
+        self.targeted_by = -1
+
 
 # Simple representation for a child's action
 class Move:
@@ -185,6 +189,8 @@ def moveToward( c, target, m ):
                 m.action = "run"
                 px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
                 py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
+
+                # TODO: need to check can move too!
 
                 # TODO, be smarter about this... move toward target!
                 moveOrRandom(c,px,py,m)
@@ -312,6 +318,7 @@ def valid_random_movement(c, m):
 
     if c.standing:
         m.action = "run"
+        # TODO:  Didn't check if we can run through middle space!
         m.dest = Point(c.pos.x + p[0], c.pos.y + p[1])
     else:
         m.action = "crawl"
@@ -357,15 +364,11 @@ def target_victim(c, cList, vic, m):
     global ground
     global height
     steps = max(abs(vic[0] * 2), abs(vic[1] * 2))
-    if c.standing:
-        start_height = 9
-    else:
-        start_height = 6
+    if c.standing:  start_height = 9
+    else: start_height = 6
 
-    if vic[5]:
-        vic_height = 9
-    else:
-        vic_height = 6
+    if vic[5]: vic_height = 9
+    else: vic_height = 6
 
     take_the_shot = False
     # for each step 1 to steps
@@ -378,6 +381,7 @@ def target_victim(c, cList, vic, m):
 
         # have to do... 
         # if ground[atx][aty] == child (red or blue).. then find out which one
+        # perhaps it is the one we are targeting, vic[6], but perhaps not.
 
         #cindex = find_child_at(atx, aty, cList)
         #child_height = 0
@@ -415,12 +419,10 @@ def target_victim(c, cList, vic, m):
         # before the snowball falls into the snow.
         m.dest = Point( c.pos.x + vic[0] * 2,
                         c.pos.y + vic[1] * 2 )
+        return vic[6]
+    else:
+        return 0
 
-    # TODO: but if something's in the way, like a tree, 
-    # or a snowman that we can't throw over
-    # or your own guy (although your own guy could move in this turn?), 
-    # then it doesnt make sense to throw, because it will just be
-    # blocked, or you will hit your own guy
 
 def find_average_and_move(c, locations, m):
     # figure out the average
@@ -454,7 +456,8 @@ def moveToAverage(c, cList, m):
             find_average_and_move(c, locations, m)
         else:
             # random move.
-            valid_random_movement(c, m)
+            #valid_random_movement(c, m)
+            moveToward(c, Point(15,15), m)
 
 def snowball_matcher(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_S or
@@ -741,6 +744,7 @@ while turnNum >= 0:
             c.pos.y = string.atoi( tokens[ 1 ] )
             if i >= CCOUNT:
                 c.last_known.set(c.pos.x, c.pos.y)
+                c.targeted_by = -1
 
             # Read the stance, what the child is holding and how much
             # longer he's dazed.
@@ -789,42 +793,46 @@ while turnNum >= 0:
                     # choose the best one.
                     vic = choose_victim(vics)
                     # set action to throw and set the dest.
-                    target_victim(c, cList, vic, m)
-                    c.last_victim = vic[6]
-                else:
-                    # TODO: Look for any almost complete snowmen near by that
-                    # we can run to in one step and complete?
+                    chosen_vic = target_victim(c, cList, vic, m)
+                    if chosen_vic != 0:
+                        c.last_victim = chosen_vic
+                        cList[chosen_vic].targeted_by = i
 
-                    # are we at our target?
-                    if c.reached_target == True:
-
-                        # TODO:  If we are within 4*4+4*4 of any almost complete 
-                        # or blue snowman, that should be our new target.
-
-                        # now go free range...
-                        if c.last_victim > 0:
-                            # do we know where he is now?
-                            if cList[c.last_victim].pos.x >= 0:
-                                # move towards him
-                                moveToward(c, Point(cList[c.last_victim].pos.x,
-                                                    cList[c.last_victim].pos.y), m)
-                            else:
-                                if cList[c.last_victim].last_known.x >= 0:
-                                    moveToward(c, 
-                                               Point(cList[c.last_victim].last_known.x,
-                                                     cList[c.last_victim].last_known.y), m)
-                                else:
-                                    moveToAverage(c, cList, m)
-                        else:
-                            moveToAverage(c, cList, m)
-                    else:
-                        if c.pos == c.target:
-                            c.reached_target = True
-
-            # If nothing else to do, try to move somewhere
             if m.action == "idle":
-                if c.dazed == 0:
-                    moveToward( c, c.target, m )
+                # TODO: Look for any almost complete snowmen near by that
+                # we can run to in one step and complete?
+
+                # are we at our target?
+                if c.reached_target == True:
+
+                    # TODO:  If we are within 4*4+4*4 of any almost complete 
+                    # or blue snowman, that should be our new target.
+
+                    # now go free range...
+                    if c.last_victim > 0:
+                        # do we know where he is now?
+                        if cList[c.last_victim].pos.x >= 0:
+                            # move towards him
+                            moveToward(c, Point(cList[c.last_victim].pos.x,
+                                                cList[c.last_victim].pos.y), m)
+                        else:
+                            if cList[c.last_victim].last_known.x >= 0:
+                                moveToward(c, 
+                                           Point(cList[c.last_victim].last_known.x,
+                                                 cList[c.last_victim].last_known.y), m)
+                            else:
+                                moveToAverage(c, cList, m)
+                    else:
+                        moveToAverage(c, cList, m)
+                else:
+                    if c.pos == c.target:
+                        c.reached_target = True
+                        # TODO, do something better...
+                        #valid_random_movement(c, m)
+                        moveToward(c, Point(15,15), m)
+                    else:
+                        if c.dazed == 0:
+                            moveToward( c, c.target, m )
 
         # TODO: avoid a attempt to move into the same space as well.
 
