@@ -646,41 +646,59 @@ def figure_crawl_dest(c, sx, sy, m):
     else:
         m.dest = Point(c.pos.x, c.pos.y - 1)
 
+
+def pickup_if_no_one_else_will(c, i, cList, sx, sy, m):
+    m.action = "pickup"
+    m.dest = Point( sx, sy )
+
+    # But, if a previous child is going to pick up 
+    # from the same spot, then move randomly instead.
+    if i > 0:
+        for prev_c_index in range(0, i):
+            if (cList[prev_c_index].last_action == "pickup" and
+                cList[prev_c_index].last_dest == m.dest):
+                # shouldn't try to move into a space 
+                # where somebody else is trying to pickup something,
+                # but our move checking at the end should prevent that.
+                valid_random_movement(c,m)
+
+
 def acquire_small_snowball(i, c, cList, m):
     # Crush into a snowball, if we have snow.
     if c.holding == HOLD_P1:
         m.action = "crush"
     else:
         if not c.standing:
-            sx, sy = can_crawl_to(c, blue_snowman)
-            if sx >= 0:
-                m.action = "crawl"
-                figure_crawl_dest(c, sx, sy, m)
+            # First priority, I'm next to a blue snowman
+            sx, sy = look_for(c, blue_snowman)
+            if sy >= 0:
+                pickup_if_no_one_else_will(c, i, cList, sx, sy, m)
             else:
-                # am I next to a med snowball, and next to a large base, 
-                # or can crawl to a large base?
-                sx,sy = look_for(c, medium_snowball_matcher)
-                sx2, sy2 = look_for(c, snowman_base_matcher)
-                sx3, sy3 = can_crawl_to(c, snowman_base_matcher)
-                if sx >= 0 and (sx2 >= 0 or sx3 >= 0):
-                    # pick it up.
-                    m.action = "pickup"
-                    m.dest = Point(sx, sy)
+                sx, sy = can_crawl_to(c, blue_snowman)
+                if sx >= 0:
+                    m.action = "crawl"
+                    figure_crawl_dest(c, sx, sy, m)
                 else:
-                    sx, sy = can_crawl_to(c, snowball_matcher)
-                    if sx >= 0:
-                        m.action = "crawl"
-                        figure_crawl_dest(c, sx, sy, m)
+                    # am I next to a med snowball, and next to a large base, 
+                    # or can crawl to a large base?
+                    sx,sy = look_for(c, medium_snowball_matcher)
+                    sx2, sy2 = look_for(c, snowman_base_matcher)
+                    sx3, sy3 = can_crawl_to(c, snowman_base_matcher)
+                    if sx >= 0 and (sx2 >= 0 or sx3 >= 0):
+                        # pick it up.
+                        pickup_if_no_one_else_will(c, i, cList, sx, sy, m)
+                    else:
+                        sx, sy = can_crawl_to(c, snowball_matcher)
+                        if sx >= 0:
+                            m.action = "crawl"
+                            figure_crawl_dest(c, sx, sy, m)
         else:
             sx, sy = can_run_to(c, blue_snowman)
             if sx >= 0:
                 moveToward(c, Point(sx,sy), m)
 
-        #  BUT yet, things that are close by should be first priority?
-
-        # if not going to crawl (or run) somewhere...
+        # if not going to crawl (or run) somewhere or pick up a snowball, of some sort...
         if m.action == "idle":
-
             sx, sy = look_for(c, blue_snowman)
             if sy == -1:
                 sx, sy = look_for_small_snowball(c)
@@ -693,18 +711,7 @@ def acquire_small_snowball(i, c, cList, m):
                 if c.standing:
                     m.action = "crouch"
                 else:
-                    m.action = "pickup"
-                    m.dest = Point( sx, sy )
-
-                    # But, if a previous child is going to pick up 
-                    # from the same spot, then move randomly instead.
-                    if i > 0:
-                        for prev_c_index in range(0, i):
-                            if (cList[prev_c_index].last_action == "pickup" and
-                                cList[prev_c_index].last_dest == m.dest):
-                                # TODO: do better... don't move into a space 
-                                # where somebody else is trying to pickup something!
-                                valid_random_movement(c,m)
+                    pickup_if_no_one_else_will(c, i, cList, sx, sy, m)
             else:
                 # move randomly to try to find some small snowballs or snow
                 valid_random_movement(c,m)
