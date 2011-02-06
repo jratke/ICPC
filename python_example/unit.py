@@ -405,6 +405,35 @@ class TestTargeter(unittest.TestCase):
 #   R g g g g g g g
 #
 
+
+# return the number of steps needed (minimum) when the snowball hits the snowman on
+# the maximum step of all the steps taken.
+def return_steps_max_needed(snowman_head_height, start_height, min_steps):
+#snowman_head_height = 6
+#start_height = 9
+    for i in range(min_steps, MAX_DIST+1):
+        for j in range(i, 0, -1):  # step number 
+                                 # even though highly unlikely to hit in first or last step..
+            if (start_height - int(round(float(9 * j)/float(i))) == snowman_head_height and
+                j >= min_steps):
+                print "at that height on step", j
+                # gotcha!
+                return i
+    return 0
+
+def show_x_y_height(sx, sy, dx, dy, start_height):
+    steps = max(dx, dy)
+    for s in range(1,steps+1):
+        # calculate height
+        height_at_step_s = start_height - int(round(float(9 * s)/float(steps)))
+        # calculate position it will be at...
+        atx = sx + int(round( float( s * ( dx ) )/float(steps) ))
+        aty = sy + int(round( float( s * ( dy ) )/float(steps) ))
+        print "height:",height_at_step_s," x:",atx," y:",aty 
+
+
+
+
 class TestCrawling(unittest.TestCase):
     def setUp(self):
         init_ground()

@@ -177,9 +177,6 @@ def moveOrRandom(c,px,py,m):
 # Fill in move m to move the child c twoard the given target location, either
 # crawling or running.
 
-# TODO: If running, you've got to check if it's valid to move through the 
-# middle space as well!
-
 def moveToward( c, target, m ):
     if c.standing:
         # Run to the destination
@@ -536,7 +533,6 @@ def can_crawl_to(c, matcher):
 
     return (-1, -1)
         
-# TODO:
 # can_run_to(c, matcher)
 # depending on which spot, N, you can run to, check certain spots, C, for 
 # whatever we are trying to match.
@@ -595,6 +591,34 @@ def can_run_to(c, matcher):
             return (px, py)
 
     return (-1, -1)
+
+#
+# can snipe?
+#
+#   X X X X X X B
+#   P
+#
+# dx = 6, dy = -1
+# dsq = 36
+# clear path..
+# in order to hit a height of 6...
+#  height_at_step_s = start_height - int(round(float(9 * s)/float(steps)))
+
+#    6 = 9 - 
+#
+MAX_DIST = 24
+def return_steps_min_needed(snowman_head_height, start_height, min_steps):
+#snowman_head_height = 6
+#start_height = 9
+    for i in range(min_steps, MAX_DIST+1):
+        for j in range(1, i+1):  # step number 
+                                 # even though highly unlikely to hit in first or last step..
+            if (start_height - int(round(float(9 * j)/float(i))) == snowman_head_height and
+                j >= min_steps):
+                print "at that height on step", j
+                # gotcha!
+                return i
+    return 0
 
 def figure_crawl_dest(c, sx, sy, m):
     dx = sx - c.pos.x
@@ -715,6 +739,8 @@ while turnNum >= 0:
     tokens = string.split( sys.stdin.readline() )
     score[ RED ] = tokens[ 0 ]
     score[ BLUE ] = tokens[ 1 ]
+
+    smb_list = []
     
     # Parse the current map.
     for i in range( SIZE ):
@@ -727,6 +753,8 @@ while turnNum >= 0:
             else:
                 height[ i ][ j ] = string.find( string.digits, tokens[ j ][ 0 ] )
                 ground[ i ][ j ] = string.find( string.ascii_lowercase, tokens[ j ][ 1 ] )
+                if ground[i][j] == GROUND_SMB:
+                    smb_list.append((i, j, height[i][j]))
                 
     # Read the states of all the children.
     for i in range( CCOUNT * 2 ):
@@ -796,6 +824,20 @@ while turnNum >= 0:
                     if chosen_vic != 0:
                         c.last_victim = chosen_vic
                         cList[chosen_vic].targeted_by = i
+
+                        # TODO, If same victim targeted by someone else, probably 
+                        # should do something else.
+
+            if m.action == "idle":
+                for sm in smb_list:
+                    dx = sm[0] - c.pos.x
+                    dy = sm[1] - c.pos.y
+                    if dx*dx <= 81 and dy*dy <= 81:
+                        s = return_steps_min_needed(sm[2], 9, max(abs(dx),abs(dy)))
+                        if s > 0:
+                            # we could theoretically hit it!
+                            sys.stderr.write("%d could hit sm at %d %d\n" % (i, sm[0], sm[1]))
+                            break
 
             if m.action == "idle":
                 sx, sy = can_run_to(c, almost_snowman)
