@@ -421,6 +421,19 @@ def return_steps_max_needed(snowman_head_height, start_height, min_steps):
                 return i
     return 0
 
+def return_max_steps_max_needed(snowman_head_height, start_height, min_steps):
+#snowman_head_height = 6
+#start_height = 9
+    for i in range(MAX_DIST, min_steps-1, -1):
+        for j in range(i, 0, -1):  # step number 
+                                 # even though highly unlikely to hit in first or last step..
+            if (start_height - int(round(float(9 * j)/float(i))) == snowman_head_height and
+                j >= min_steps):
+                print "at that height on step", j
+                # gotcha!
+                return i
+    return 0
+
 def show_x_y_height(sx, sy, dx, dy, start_height):
     steps = max(dx, dy)
     for s in range(1,steps+1):

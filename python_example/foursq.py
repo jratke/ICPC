@@ -462,7 +462,14 @@ def snowball_matcher(ox, oy):
             ground[ ox ][ oy ] == GROUND_LS or
             ground[ ox ][ oy ] == GROUND_SMB)  # because we can take the top off.
 
-def snow_matcher(ox, oy):
+def medium_snowball_matcher(ox,oy):
+    return ground[ox][oy] == GROUND_M
+
+def snowman_base_matcher(ox,oy):
+    return (ground[ox][oy] == GROUND_L and
+            height[ox][oy] < 7)
+
+def powdered_snow_matcher(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_EMPTY and 
             height[ ox ][ oy ] > 0)
 
@@ -475,6 +482,10 @@ def blue_snowman(ox, oy):
 def can_drop_here(ox, oy):
     return (ground[ox][oy] == GROUND_EMPTY and
             height[ox][oy] < 9)
+
+def safe_drop(ox,oy):
+    return (ground[ox][oy] == GROUND_EMPTY and
+            height[ox][oy] < 7)
 
 def look_for(c, matcher):
     for oy in range( c.pos.y + 1, c.pos.y - 2, -1 ):
@@ -489,8 +500,8 @@ def look_for(c, matcher):
 def look_for_small_snowball(c):
     return look_for(c, snowball_matcher)
 
-def look_for_snow(c):
-    return look_for(c, snow_matcher)
+def look_for_powdered_snow(c):
+    return look_for(c, powdered_snow_matcher)
 
 
 def check_list_of_positions(c, l, matcher):
@@ -642,12 +653,24 @@ def acquire_small_snowball(i, c, cList, m):
     else:
         if not c.standing:
             sx, sy = can_crawl_to(c, blue_snowman)
-            if sx == -1:
-                sx, sy = can_crawl_to(c, snowball_matcher)
-
             if sx >= 0:
                 m.action = "crawl"
                 figure_crawl_dest(c, sx, sy, m)
+            else:
+                # am I next to a med snowball, and next to a large base, 
+                # or can crawl to a large base?
+                sx,sy = look_for(c, medium_snowball_matcher)
+                sx2, sy2 = look_for(c, snowman_base_matcher)
+                sx3, sy3 = can_crawl_to(c, snowman_base_matcher)
+                if sx >= 0 and (sx2 >= 0 or sx3 >= 0):
+                    # pick it up.
+                    m.action = "pickup"
+                    m.dest = Point(sx, sy)
+                else:
+                    sx, sy = can_crawl_to(c, snowball_matcher)
+                    if sx >= 0:
+                        m.action = "crawl"
+                        figure_crawl_dest(c, sx, sy, m)
         else:
             sx, sy = can_run_to(c, blue_snowman)
             if sx >= 0:
@@ -663,7 +686,7 @@ def acquire_small_snowball(i, c, cList, m):
                 sx, sy = look_for_small_snowball(c)
 
             if sx == -1:
-                sx, sy = look_for_snow(c)
+                sx, sy = look_for_powdered_snow(c)
 
             # If there is a small snowball or snow, try to get it.
             if sx >= 0:
@@ -805,11 +828,25 @@ while turnNum >= 0:
         c = cList[ i ]
         m = Move()
 
-        # If we somehow hold a medium or large snowball, drop it!
-        if (c.holding == HOLD_M or c.holding == HOLD_L or
-            c.holding == HOLD_P2 or c.holding == HOLD_P3):
-            m.action = "drop"
-            m.dest = Point(c.pos.x + 1, c.pos.y)
+        # If we picked up a medium snowball, assume we are crouched, and look for
+        # a large one near by to drop this one on.
+        if c.holding == HOLD_M:
+            sx,sy = look_for(c, snowman_base_matcher)
+            if sx >= 0:
+                m.action = "drop"
+                m.dest = Point(sx, sy)
+            else:
+                sx,sy = can_crawl_to(c, snowman_base_matcher)
+                if sx >= 0:
+                    m.action = "crawl"
+                    figure_crawl_dest(c, sx, sy, m)
+                else:
+                    # something went wrong with our plans, perhaps someone
+                    # walked through the large snowball base!
+                    sx,sy = look_for(c, safe_drop)
+                    if sx >= 0:
+                        m.action = "drop"
+                        m.dest = Point(sy, sy)
 
         # Try to acquire a snowball if we need one.
         elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
@@ -887,6 +924,7 @@ while turnNum >= 0:
                                 moveToward( c, c.target, m )
 
         # TODO: avoid a attempt to move into the same space as well.
+        # TODO: and avoid drop attempts to the same location!!!  one has to idle!!
 
         c.last_action = m.action
 
