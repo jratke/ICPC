@@ -500,7 +500,7 @@ def moveToAverage(c, cList, m):
     if len(locations) > 0:
         find_average_and_move(c, locations, m)
     else:
-        # we don't know where anyone is for sure, what about last knowns?
+        # we don't know where anyone is for sure, what about last-knowns?
         for i in range( CCOUNT, CCOUNT * 2 ):
             if cList[i].last_known.x >= 0:
                 # we know where he was!
@@ -847,7 +847,7 @@ while turnNum >= 0:
                 ground[ i ][ j ] = string.find( string.ascii_lowercase, tokens[ j ][ 1 ] )
                 if (ground[i][j] == GROUND_SMB or
                     ground[i][j] == GROUND_LM):
-                    smb_list.append((i, j))  # height doesn't' matter anymore
+                    smb_list.append((i, j))  # height doesn't matter anymore
                 
     # Read the states of all the children.
     for i in range( CCOUNT * 2 ):
@@ -874,8 +874,7 @@ while turnNum >= 0:
 
             c.dazed = string.atoi( tokens[ 4 ] )
 
-    # Mark all the children in the map, so they are easy to
-    # look up.
+    # Mark all the children in the map, so they are easy to look up.
     for i in range( 2 * CCOUNT ):
         c = cList[ i ]
         if c.pos.x >= 0:
@@ -934,6 +933,14 @@ while turnNum >= 0:
 
                         # TODO, If same victim targeted by someone else, probably 
                         # should do something else.
+                    else:
+                        # couldn't hit that one, is there another one?
+                        if len(vics) > 1:
+                            chosen_vic = target_victim(c, cList, vics[1], m)
+                            if chosen_vic != 0:
+                                c.last_victim = chosen_vic
+                                cList[chosen_vic].targeted_by = i
+                            
 
             if m.action == "idle":
                 sx, sy = can_run_to(c, almost_snowman)
