@@ -193,6 +193,10 @@ def moveToward( c, target, m ):
                     # just try up or down only
                     if can_move(c.pos.x, py):
                         m.dest = Point(c.pos.x,py)
+                    elif can_move(c.pos.x+1, c.pos.y):  # try right...
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):  # try left...
+                        m.dest = Point(c.pos.x-1, c.pos.y)
                     else:
                         m.action = "idle"
                         m.dest = None
@@ -208,6 +212,11 @@ def moveToward( c, target, m ):
                             m.dest = Point(c.pos.x + 1, c.pos.y+1)
                         elif can_move(c.pos.x + 1, c.pos.y-1):
                             m.dest = Point(c.pos.x + 1, c.pos.y-1)
+                        # else have to go off course for a bit.
+                        elif can_move(c.pos.x, c.pos.y+1):
+                            m.dest = Point(c.pos.x, c.pos.y+1)
+                        elif can_move(c.pos.x, c.pos.y-1):
+                            m.dest = Point(c.pos.x, c.pos.y-1)
                         else:
                             m.action = "idle"
                             m.dest = None
@@ -228,6 +237,11 @@ def moveToward( c, target, m ):
                             m.dest = Point(c.pos.x - 1, c.pos.y+1)
                         elif can_move(c.pos.x - 1, c.pos.y-1):
                             m.dest = Point(c.pos.x - 1, c.pos.y-1)
+                        # else have to go off course for a bit.
+                        elif can_move(c.pos.x, c.pos.y+1):
+                            m.dest = Point(c.pos.x, c.pos.y+1)
+                        elif can_move(c.pos.x, c.pos.y-1):
+                            m.dest = Point(c.pos.x, c.pos.y-1)
                         else:
                             m.action = "idle"
                             m.dest = None
@@ -252,6 +266,10 @@ def moveToward( c, target, m ):
                         m.dest = Point(c.pos.x+1, c.pos.y+1)
                     elif can_move(c.pos.x-1, c.pos.y+1):
                         m.dest = Point(c.pos.x-1, c.pos.y+1)
+                    elif can_move(c.pos.x+1, c.pos.y):
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):
+                        m.dest = Point(c.pos.x-1, c.pos.y)
                     else:
                         m.action = "idle"
                         m.dest = None
@@ -272,6 +290,10 @@ def moveToward( c, target, m ):
                         m.dest = Point(c.pos.x+1, c.pos.y-1)
                     elif can_move(c.pos.x-1, c.pos.y-1):
                         m.dest = Point(c.pos.x-1, c.pos.y-1)
+                    elif can_move(c.pos.x+1, c.pos.y):
+                        m.dest = Point(c.pos.x+1, c.pos.y)
+                    elif can_move(c.pos.x-1, c.pos.y):
+                        m.dest = Point(c.pos.x-1, c.pos.y)
                     else:
                         m.action = "idle"
                         m.dest = None
@@ -330,7 +352,8 @@ def can_move(px, py):
         ground[px][py] != GROUND_CHILD_RED and
         ground[px][py] != GROUND_CHILD_BLUE and
         ground[px][py] != GROUND_SMR and     # these last two probably redundant
-        ground[px][py] != GROUND_SMB):
+        ground[px][py] != GROUND_SMB and
+        ground[px][py] != GROUND_LM):      # don't smash a potential snowman!
         return True
     else:
         return False
@@ -507,7 +530,8 @@ def powdered_snow_matcher(ox, oy):
             height[ ox ][ oy ] > 0)
 
 def almost_snowman(ox, oy):
-    return (ground[ ox ][ oy ] == GROUND_LM)
+    return (ground[ ox ][ oy ] == GROUND_LM and
+            height[ ox ][ oy ] < 9)
 
 def blue_snowman(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_SMB)
@@ -964,6 +988,9 @@ while turnNum >= 0:
                         else:
                             if c.dazed == 0:
                                 moveToward( c, c.target, m )
+                                if m.action == "idle":
+                                    # we must be pretty blocked, so give up..
+                                    c.reached_target = True
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
