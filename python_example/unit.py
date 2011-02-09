@@ -370,18 +370,79 @@ def choose_victim(vics):
     vics.sort(lambda x,y:cmp(x[3],y[3]), reverse=True)  # holding.  
     return vics[0]
 
-def target_victim(c, vic, m):
-    m.action = "throw"
-    # throw past the victim, so we will probably hit them
-    # before the snowball falls into the snow.
-    m.dest = Point( c.pos.x + vic[0] * 2,
-                    c.pos.y + vic[1] * 2 )
-    # but if something's in the way, like a tree, 
-    # or a snowman that we can't throw over
-    # or your own guy (although your own guy could move in this turn?), 
-    # then it doesnt make sense to throw, because it will just be
-    # blocked, or you will hit your own guy
+def target_victim(c, cList, vic, m):
+    global ground
+    global height
+    steps = max(abs(vic[0] * 2), abs(vic[1] * 2))
+    if c.standing:  start_height = 9
+    else: start_height = 6
 
+    if vic[5]: vic_height = 9
+    else: vic_height = 6
+
+    take_the_shot = False
+    # for each step 1 to steps
+    for s in range(1,steps+1):
+        # calculate height
+        height_at_step_s = start_height - int(round(float(9 * s)/float(steps)))
+        # calculate position it will be at...
+        atx = c.pos.x + int(round( float( s * ( vic[0] * 2 ) )/float(steps) ))
+        aty = c.pos.y + int(round( float( s * ( vic[1] * 2 ) )/float(steps) ))
+
+        # have to do... 
+        # if ground[atx][aty] == child (red or blue).. then find out which one
+        # perhaps it is the one we are targeting, vic[6], but perhaps not.
+
+        #cindex = find_child_at(atx, aty, cList)
+        #child_height = 0
+        #if cindex >= 0:
+        #    child_height = 6
+        #    if cList[cindex].standing:
+        #        child_height = 9
+
+        # if anything we don't want to hit at this point
+        # including the ground, abort!
+        if (ground[atx][aty] == GROUND_TREE or
+            ground[atx][aty] == GROUND_CHILD_RED or  # don't take a chance
+            # TODO: might be ok, if player on our team is crouching.
+            (height[atx][aty] >= 0 and    # we know the height  and...
+             (height_at_step_s < height[atx][aty]  or
+              (height_at_step_s == height[atx][aty] and
+               ground[atx][aty] != GROUND_SMB)))):
+            break
+
+        # if something we do want to hit.  Take the shot!!!
+        if ground[atx][aty] == GROUND_CHILD_BLUE:  # TODO: and they are not ducking...
+            take_the_shot = True
+            break
+
+        # a blue snow man is ok, only if we are going to hit it in the head
+        # a red snowman is ok, only if we throw over it..
+
+        # if we went through all that, and we didn't hit anything, 
+        # (maybe it would pass over the target) 
+        # then don't take the shot either.
+
+    if take_the_shot:
+        m.action = "throw"
+        # throw past the victim, so we will probably hit them
+        # before the snowball falls into the snow.
+        m.dest = Point( c.pos.x + vic[0] * 2,
+                        c.pos.y + vic[1] * 2 )
+        return vic[6]
+    else:
+        return 0
+
+# couldn't hit that one, or someone else on the team is 
+# already targeting him.
+def try_for_alternate_victim(c, i, cList, vics, m):
+    if len(vics) > 1:
+        chosen_vic = target_victim(c, cList, vics[1], m)
+
+        # if we think we can hit him
+        if chosen_vic != 0:
+            c.last_victim = chosen_vic
+            cList[chosen_vic].targeted_by = i
 
 
 ########################################################################################

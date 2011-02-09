@@ -796,6 +796,56 @@ def finish_nearby_snowman_or_stand(c, m):
             else:
                 m.action = "stand"
 
+
+# couldn't hit that one, or someone else on the team is 
+# already targeting him.
+#
+# possible_m is an alternate move (if possible_m.action != "idle")
+# that this child could take instead.
+#
+def try_for_alternate_victim(c, i, cList, vics, m):
+    if len(vics) > 1:
+        # can we target the second victim in the list
+        chosen_vic = target_victim(c, cList, vics[1], m)
+
+        # if we think we can hit this alternate target
+        if chosen_vic != 0:
+            c.last_victim = chosen_vic
+            cList[chosen_vic].targeted_by = i
+
+
+# Fill in move, m, with a _potential_ action and destination!
+#
+def snowman_or_move_action(c, smb_list, m):
+    sx, sy = can_run_to(c, almost_snowman)
+    if sx >= 0:
+        moveToward(c, Point(sx,sy), m)
+    else:
+        # have we already reached our target at least once at some point?
+        if c.reached_target == True:
+
+            # am I within one of a blue snowman while holding a snowball?
+            # have to drop it, temporarily, so I can convert that snowman.
+            sx,sy = look_for(c, blue_snowman)
+            if sx >= 0:
+                sx,sy = look_for(c, can_drop_here)
+                if sy >= 0:
+                    m.action = "drop"
+                    m.dest = Point(sx,sy)
+
+            if m.action == "idle":
+                # If we are within 10x10 of any almost complete snowman 
+                # or blue snowman, that should be our new target.
+                for sm in smb_list:
+                    dx = sm[0] - c.pos.x
+                    dy = sm[1] - c.pos.y
+                    if dx*dx <= 100 and dy*dy <= 100:
+                        moveToward(c, Point(sm[0], sm[1]), m)
+                        break
+
+
+
+
 ########################################################################################
 
 # Source of randomness
@@ -918,8 +968,13 @@ while turnNum >= 0:
             acquire_small_snowball(i, c, cList, m)
         else:
             finish_nearby_snowman_or_stand(c, m)
+            
+            possible_m = Move()
 
             if m.action == "idle":
+
+                snowman_or_move_action(c, smb_list, possible_m)
+
                 # find potential victims.
                 vics = victims_in_range(c, cList)
                 if len(vics) > 0:
@@ -928,64 +983,63 @@ while turnNum >= 0:
                     # set action to throw and set the dest.
                     chosen_vic = target_victim(c, cList, vic, m)
                     if chosen_vic != 0:
-                        c.last_victim = chosen_vic
-                        cList[chosen_vic].targeted_by = i
-
-                        # TODO, If same victim targeted by someone else, probably 
-                        # should do something else.
+                        # If same victim targeted by someone else in 
+                        # this turn, then perhaps we should do something 
+                        # else, like target a different victim. It's best to target
+                        # someone else because we still want to get 10 points for
+                        # hitting someone, but if we hit someone else, they too 
+                        # will be dazed for 4 turns.
+                        if cList[chosen_vic].targeted_by == -1:
+                            c.last_victim = chosen_vic
+                            cList[chosen_vic].targeted_by = i
+                        else:
+                            if possible_m.action != "idle":
+                                m.action = possible_m.action
+                                m.dest = possible_m.dest
+                            else:
+                                try_for_alternate_victim(c, i, cList, vics, m)
                     else:
-                        # couldn't hit that one, is there another one?
+                        # can't hit that one, are there more?
                         if len(vics) > 1:
+                            # can we target the second victim in the list?
                             chosen_vic = target_victim(c, cList, vics[1], m)
+
+                            # if we think we can hit this alternate target
                             if chosen_vic != 0:
                                 c.last_victim = chosen_vic
                                 cList[chosen_vic].targeted_by = i
-                            
+                            else:
+                                m.action = possible_m.action
+                                m.dest = possible_m.dest
+                                
+
 
             if m.action == "idle":
-                sx, sy = can_run_to(c, almost_snowman)
-                if sx >= 0:
-                    moveToward(c, Point(sx,sy), m)
+
+                if possible_m.action != "idle":
+                    # do it.
+                    m.action = possible_m.action
+                    m.dest   = possible_m.dest
                 else:
                     # have we already reached our target at least once at some point?
                     if c.reached_target == True:
 
-                        # am I within one of a blue snowman while holding a snowball?
-                        # have to drop it, temporarily, so I can convert that snowman.
-                        sx,sy = look_for(c, blue_snowman)
-                        if sx >= 0:
-                            sx,sy = look_for(c, can_drop_here)
-                            if sy >= 0:
-                                m.action = "drop"
-                                m.dest = Point(sx,sy)
-
-                        if m.action == "idle":
-                            # If we are within 9x9 of any almost complete snowman 
-                            # or blue snowman, that should be our new target.
-                            for sm in smb_list:
-                                dx = sm[0] - c.pos.x
-                                dy = sm[1] - c.pos.y
-                                if dx*dx <= 81 and dy*dy <= 81:
-                                    moveToward(c, Point(sm[0], sm[1]), m)
-                                    break
-
-                        if m.action == "idle":
-                            # now go free range...
-                            if c.last_victim > 0:
-                                # do we know where he is now?
-                                if cList[c.last_victim].pos.x >= 0:
-                                    # move towards him
-                                    moveToward(c, Point(cList[c.last_victim].pos.x,
-                                                        cList[c.last_victim].pos.y), m)
-                                else:
-                                    if cList[c.last_victim].last_known.x >= 0:
-                                        moveToward(c, 
-                                                   Point(cList[c.last_victim].last_known.x,
-                                                         cList[c.last_victim].last_known.y), m)
-                                    else:
-                                        moveToAverage(c, cList, m)
+                        # now go free range...
+                        if c.last_victim > 0:
+                            # do we know where he is now?
+                            if cList[c.last_victim].pos.x >= 0:
+                                # move towards him
+                                moveToward(c, Point(cList[c.last_victim].pos.x,
+                                                    cList[c.last_victim].pos.y), m)
                             else:
-                                moveToAverage(c, cList, m)
+                                if cList[c.last_victim].last_known.x >= 0:
+                                    moveToward(c, 
+                                               Point(cList[c.last_victim].last_known.x,
+                                                     cList[c.last_victim].last_known.y), m)
+                                else:
+                                    moveToAverage(c, cList, m)
+                        else:
+                            moveToAverage(c, cList, m)
                     else:
                         if c.pos == c.target:
                             c.reached_target = True
