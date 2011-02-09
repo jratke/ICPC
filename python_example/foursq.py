@@ -1,19 +1,12 @@
-# A simple player that just tries to hit children on the opponent's
-# team with snowballs.
 #
-# Feel free to use this as a starting point for your own player.
-# Also, feel free to send in refinements or fixes to this code.  I'm
-# not a python programmer.
+# Icy Projectile Challenge
+# Player code by John Ratke
+# Based on hunter.py example program
 #
-# ICPC Challenge
-# Sturgill, UNC Greensboro
 
 import random
 import sys
 import string
-
-# Constants supporting a player in the icypc challenge game.  Feel
-# free to use this and extend it for your own implementation.
 
 # Width and height of the playing field.
 SIZE = 31
@@ -351,7 +344,7 @@ def can_move(px, py):
         ground[px][py] != GROUND_TREE and
         ground[px][py] != GROUND_CHILD_RED and
         ground[px][py] != GROUND_CHILD_BLUE and
-        ground[px][py] != GROUND_SMR and     # these last two probably redundant
+        ground[px][py] != GROUND_SMR and     # these two probably redundant
         ground[px][py] != GROUND_SMB and
         ground[px][py] != GROUND_LM):      # don't smash a potential snowman!
         return True
@@ -800,9 +793,6 @@ def finish_nearby_snowman_or_stand(c, m):
 # couldn't hit that one, or someone else on the team is 
 # already targeting him.
 #
-# possible_m is an alternate move (if possible_m.action != "idle")
-# that this child could take instead.
-#
 def try_for_alternate_victim(c, i, cList, vics, m):
     if len(vics) > 1:
         # can we target the second victim in the list
@@ -836,6 +826,10 @@ def snowman_or_move_action(c, smb_list, m):
             if m.action == "idle":
                 # If we are within 10x10 of any almost complete snowman 
                 # or blue snowman, that should be our new target.
+
+                # TODO: consider all the blue snowmen and almost-snowmen 
+                #   and sort the list by nearest position...
+
                 for sm in smb_list:
                     dx = sm[0] - c.pos.x
                     dy = sm[1] - c.pos.y
@@ -973,6 +967,10 @@ while turnNum >= 0:
 
             if m.action == "idle":
 
+                # possible_m is an alternate move 
+                # that this child could take if there is no victim to target,
+                # the victim(s) can't be hit, or the victim is already
+                # targeted by another member of the team in this turn.
                 snowman_or_move_action(c, smb_list, possible_m)
 
                 # find potential victims.
@@ -1057,11 +1055,8 @@ while turnNum >= 0:
         # avoid drop attempts to the same location!  one has to idle!!
         if i > 0:
             for prev_c_index in range(0, i):
-                if (#(m.action == "drop" and cList[prev_c_index].last_action == "drop" and
-                    # m.dest == cList[prev_c_index].last_dest) or
-                    #((m.action == "crawl" or m.action == "run") and
-                    ((m.action == "crawl" or m.action == "run" or m.action == "drop") and
-                     m.dest == cList[prev_c_index].last_dest)):
+                if ((m.action == "crawl" or m.action == "run" or m.action == "drop") and
+                     m.dest == cList[prev_c_index].last_dest):
                     m.action = "idle"
                     m.dest = None
 
