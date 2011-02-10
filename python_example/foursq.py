@@ -743,9 +743,14 @@ def acquire_small_snowball(i, c, cList, m):
                             m.action = "crawl"
                             figure_crawl_dest(c, sx, sy, m)
         else:
-            sx, sy = can_run_to(c, blue_snowman)
+            # if now next to a blue snowman...
+            sx,sy = look_for(c, blue_snowman)
             if sx >= 0:
-                moveToward(c, Point(sx,sy), m)
+                m.action = "crouch"
+            else:
+                sx, sy = can_run_to(c, blue_snowman)
+                if sx >= 0:
+                    moveToward(c, Point(sx,sy), m)
 
         # if not going to crawl (or run) somewhere or pick up a snowball, of some sort...
         if m.action == "idle":
@@ -824,19 +829,17 @@ def snowman_or_move_action(c, smb_list, m):
                     m.dest = Point(sx,sy)
 
             if m.action == "idle":
-                # If we are within 10x10 of any almost complete snowman 
-                # or blue snowman, that should be our new target.
-
-                # TODO: consider all the blue snowmen and almost-snowmen 
-                #   and sort the list by nearest position...
-
+                snowmen = []
                 for sm in smb_list:
                     dx = sm[0] - c.pos.x
-                    dy = sm[1] - c.pos.y
-                    if dx*dx <= 100 and dy*dy <= 100:
-                        moveToward(c, Point(sm[0], sm[1]), m)
-                        break
+                    dy = sm[1] - c.pos.y                    
+                    snowmen.append((dx*dx+dy*dy, sm[0], sm[1]))
 
+                if len(snowmen) > 1:
+                    snowmen.sort(lambda x,y:cmp(x[0],y[0])) # sort by the distances 
+
+                if len(snowmen) > 0:
+                    moveToward(c, Point(snowmen[0][1], snowmen[0][2]), m)
 
 
 
@@ -978,40 +981,45 @@ while turnNum >= 0:
                 if len(vics) > 0:
                     # choose the best one.
                     vic = choose_victim(vics)
-                    # set action to throw and set the dest.
-                    chosen_vic = target_victim(c, cList, vic, m)
-                    if chosen_vic != 0:
-                        # If same victim targeted by someone else in 
-                        # this turn, then perhaps we should do something 
-                        # else, like target a different victim. It's best to target
-                        # someone else because we still want to get 10 points for
-                        # hitting someone, but if we hit someone else, they too 
-                        # will be dazed for 4 turns.
-                        if cList[chosen_vic].targeted_by == -1:
-                            c.last_victim = chosen_vic
-                            cList[chosen_vic].targeted_by = i
-                        else:
-                            if possible_m.action != "idle":
-                                m.action = possible_m.action
-                                m.dest = possible_m.dest
-                            else:
-                                try_for_alternate_victim(c, i, cList, vics, m)
-                    else:
-                        # can't hit that one, are there more?
-                        if len(vics) > 1:
-                            # can we target the second victim in the list?
-                            chosen_vic = target_victim(c, cList, vics[1], m)
 
-                            # if we think we can hit this alternate target
-                            if chosen_vic != 0:
+                    # if the victim is already dazed 3 or more, then we might as 
+                    # well do something else
+                    if vic[4] >= 3 and possible_m.action != "idle":
+                        m.action = possible_m.action
+                        m.dest = possible_m.dest
+                    else:
+                        # set action to throw and set the dest.
+                        chosen_vic = target_victim(c, cList, vic, m)
+                        if chosen_vic != 0:
+                            # If same victim targeted by someone else in 
+                            # this turn, then perhaps we should do something 
+                            # else, like target a different victim. It's best to target
+                            # someone else because we still want to get 10 points for
+                            # hitting someone, but if we hit someone else, they too 
+                            # will be dazed for 4 turns.
+                            if cList[chosen_vic].targeted_by == -1:
                                 c.last_victim = chosen_vic
                                 cList[chosen_vic].targeted_by = i
                             else:
-                                m.action = possible_m.action
-                                m.dest = possible_m.dest
+                                if possible_m.action != "idle":
+                                    m.action = possible_m.action
+                                    m.dest = possible_m.dest
+                                else:
+                                    try_for_alternate_victim(c, i, cList, vics, m)
+                        else:
+                            # can't hit that one, are there more?
+                            if len(vics) > 1:
+                                # can we target the second victim in the list?
+                                chosen_vic = target_victim(c, cList, vics[1], m)
+
+                                # if we think we can hit this alternate target
+                                if chosen_vic != 0:
+                                    c.last_victim = chosen_vic
+                                    cList[chosen_vic].targeted_by = i
+                                else:
+                                    m.action = possible_m.action
+                                    m.dest = possible_m.dest
                                 
-
-
             if m.action == "idle":
 
                 if possible_m.action != "idle":
