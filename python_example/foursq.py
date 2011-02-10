@@ -81,7 +81,7 @@ class Point:
         else:
             return self.__dict__ != other.__dict__
 
-TARGETS = [ [(7,22),(9,19)],[(22,22),(20,19)],[(7,7),(9,10)],[(22,7),(20,10)] ]
+TARGETS = [ [(7,22)],[(22,22)],[(7,7)],[(22,7)] ]
 
 # Simple representation for a child in the game.
 class Child:
@@ -115,7 +115,6 @@ class RedChild(Child):
 
         # which run target...
         self.reached_target = False
-        self.target_index = 0     # if we wanted to have multiple predefined targets
         self.target = Point(0, 0)
         self.set_target(i)
 
@@ -125,12 +124,8 @@ class RedChild(Child):
 
     def set_target(self, i):
         if i < 4:
-            self.target.set(TARGETS[i][self.target_index][0], 
-                            TARGETS[i][self.target_index][1])
-            
-    def switch_target(self):
-        self.target_index = (self.target_index + 1) % 2
-        self.set_target(self.index)
+            self.target.set(TARGETS[i][0][0], 
+                            TARGETS[i][0][1])
 
 class BlueChild(Child):
     def __init__(self, i):
@@ -655,34 +650,6 @@ def can_run_to(c, matcher):
             return (px, py)
 
     return (-1, -1)
-
-#
-# can snipe?
-#
-#   X X X X X X B
-#   P
-#
-# dx = 6, dy = -1
-# dsq = 36
-# clear path..
-# in order to hit a height of 6...
-#  height_at_step_s = start_height - int(round(float(9 * s)/float(steps)))
-
-#    6 = 9 - 
-#
-MAX_DIST = 24
-def return_steps_min_needed(snowman_head_height, start_height, min_steps):
-#snowman_head_height = 6
-#start_height = 9
-    for i in range(min_steps, MAX_DIST+1):
-        for j in range(1, i+1):  # step number 
-                                 # even though highly unlikely to hit in first or last step..
-            if (start_height - int(round(float(9 * j)/float(i))) == snowman_head_height and
-                j >= min_steps):
-                print "at that height on step", j
-                # gotcha!
-                return i
-    return 0
 
 def figure_crawl_dest(c, sx, sy, m):
     dx = sx - c.pos.x
