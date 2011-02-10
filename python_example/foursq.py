@@ -150,7 +150,7 @@ class Move:
     # Action the child is making.
     action = "idle"
 
-    # Destiantion of this action (or null, if it doesn't need one) */
+    # Destiantion of this action (or null, if it doesn't need one)
     dest = None
 
 # Return the value of x, clamped to the [ a, b ] range.
@@ -985,8 +985,7 @@ while turnNum >= 0:
                     # if the victim is already dazed 3 or more, then we might as 
                     # well do something else
                     if vic[4] >= 3 and possible_m.action != "idle":
-                        m.action = possible_m.action
-                        m.dest = possible_m.dest
+                        m = possible_m
                     else:
                         # set action to throw and set the dest.
                         chosen_vic = target_victim(c, cList, vic, m)
@@ -1002,8 +1001,7 @@ while turnNum >= 0:
                                 cList[chosen_vic].targeted_by = i
                             else:
                                 if possible_m.action != "idle":
-                                    m.action = possible_m.action
-                                    m.dest = possible_m.dest
+                                    m = possible_m
                                 else:
                                     try_for_alternate_victim(c, i, cList, vics, m)
                         else:
@@ -1017,15 +1015,13 @@ while turnNum >= 0:
                                     c.last_victim = chosen_vic
                                     cList[chosen_vic].targeted_by = i
                                 else:
-                                    m.action = possible_m.action
-                                    m.dest = possible_m.dest
+                                    m = possible_m
                                 
             if m.action == "idle":
 
                 if possible_m.action != "idle":
                     # do it.
-                    m.action = possible_m.action
-                    m.dest   = possible_m.dest
+                    m = possible_m
                 else:
                     # have we already reached our target at least once at some point?
                     if c.reached_target == True:
