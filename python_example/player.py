@@ -83,6 +83,10 @@ class Point:
 
 TARGETS = [ [(7,22)],[(22,22)],[(7,7)],[(22,7)] ]
 
+BUILD_STAGE_BASE = 0
+BUILD_STAGE_MIDDLE = 1
+BUILD_STAGE_TOP = 2
+
 # Simple representation for a child in the game.
 class Child:
     def __init__( self, i ):
@@ -117,6 +121,9 @@ class RedChild(Child):
         self.reached_target = False
         self.target = Point(0, 0)
         self.set_target(i)
+
+        # if building a snowman
+        self.build_stage = BUILD_STAGE_BASE
 
         self.mode = 0   # get a snowball and get to target looking for victims
         if i == 2:
@@ -808,7 +815,41 @@ def snowman_or_move_action(c, smb_list, m):
                 if len(snowmen) > 0:
                     moveToward(c, Point(snowmen[0][1], snowmen[0][2]), m)
 
+def drop_medium_or_crawl(c, m):
+    sx,sy = look_for(c, snowman_base_matcher)
+    if sx >= 0:
+        m.action = "drop"
+        m.dest = Point(sx, sy)
+    else:
+        sx,sy = can_crawl_to(c, snowman_base_matcher)
+        if sx >= 0:
+            m.action = "crawl"
+            figure_crawl_dest(c, sx, sy, m)
+        else:
+            # something went wrong with our plans, perhaps someone
+            # walked through the large snowball base!
+            sx,sy = look_for(c, safe_drop)
+            if sx >= 0:
+                m.action = "drop"
+                m.dest = Point(sx, sy)
 
+
+def move_toward_last_victim_or_average(c, cList, m):
+    if c.last_victim > 0:
+        # do we know where he is now?
+        if cList[c.last_victim].pos.x >= 0:
+            # move towards him
+            moveToward(c, Point(cList[c.last_victim].pos.x,
+                                cList[c.last_victim].pos.y), m)
+        else:
+            if cList[c.last_victim].last_known.x >= 0:
+                moveToward(c, 
+                           Point(cList[c.last_victim].last_known.x,
+                                 cList[c.last_victim].last_known.y), m)
+            else:
+                moveToAverage(c, cList, m)
+    else:
+        moveToAverage(c, cList, m)
 
 ########################################################################################
 
@@ -910,23 +951,7 @@ while turnNum >= 0:
         # If we picked up a medium snowball, assume we are crouched, and look for
         # a large one near by to drop this one on.
         if c.holding == HOLD_M:
-            sx,sy = look_for(c, snowman_base_matcher)
-            if sx >= 0:
-                m.action = "drop"
-                m.dest = Point(sx, sy)
-            else:
-                sx,sy = can_crawl_to(c, snowman_base_matcher)
-                if sx >= 0:
-                    m.action = "crawl"
-                    figure_crawl_dest(c, sx, sy, m)
-                else:
-                    # something went wrong with our plans, perhaps someone
-                    # walked through the large snowball base!
-                    sx,sy = look_for(c, safe_drop)
-                    if sx >= 0:
-                        m.action = "drop"
-                        m.dest = Point(sx, sy)
-
+            drop_medium_or_crawl(c, m)
         # Try to acquire a snowball if we need one.
         elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
             acquire_small_snowball(i, c, cList, m)
@@ -992,23 +1017,8 @@ while turnNum >= 0:
                 else:
                     # have we already reached our target at least once at some point?
                     if c.reached_target == True:
-
                         # now go free range...
-                        if c.last_victim > 0:
-                            # do we know where he is now?
-                            if cList[c.last_victim].pos.x >= 0:
-                                # move towards him
-                                moveToward(c, Point(cList[c.last_victim].pos.x,
-                                                    cList[c.last_victim].pos.y), m)
-                            else:
-                                if cList[c.last_victim].last_known.x >= 0:
-                                    moveToward(c, 
-                                               Point(cList[c.last_victim].last_known.x,
-                                                     cList[c.last_victim].last_known.y), m)
-                                else:
-                                    moveToAverage(c, cList, m)
-                        else:
-                            moveToAverage(c, cList, m)
+                        move_toward_last_victim_or_average(c, cList, m)
                     else:
                         if c.pos == c.target:
                             c.reached_target = True
