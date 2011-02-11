@@ -531,11 +531,15 @@ def almost_snowman(ox, oy):
 def blue_snowman(ox, oy):
     return (ground[ ox ][ oy ] == GROUND_SMB)
 
-def can_drop_here(ox, oy):
+def can_drop_small(ox, oy):
     return (ground[ox][oy] == GROUND_EMPTY and
             height[ox][oy] < 9)
 
-def safe_drop(ox,oy):
+def can_start_snowman(ox,oy):
+    return (ground[ox][oy] == GROUND_EMPTY and
+            height[ox][oy] < 4)
+
+def safe_drop_medium(ox,oy):
     return (ground[ox][oy] == GROUND_EMPTY and
             height[ox][oy] < 7)
 
@@ -797,7 +801,7 @@ def snowman_or_move_action(c, smb_list, m):
             # have to drop it, temporarily, so I can convert that snowman.
             sx,sy = look_for(c, blue_snowman)
             if sx >= 0:
-                sx,sy = look_for(c, can_drop_here)
+                sx,sy = look_for(c, can_drop_small)
                 if sy >= 0:
                     m.action = "drop"
                     m.dest = Point(sx,sy)
@@ -828,7 +832,7 @@ def drop_medium_or_crawl(c, m):
         else:
             # something went wrong with our plans, perhaps someone
             # walked through the large snowball base!
-            sx,sy = look_for(c, safe_drop)
+            sx,sy = look_for(c, safe_drop_medium)
             if sx >= 0:
                 m.action = "drop"
                 m.dest = Point(sx, sy)
@@ -922,6 +926,97 @@ def alternate_or_move(c, cList, m, possible_m):
                     if m.action == "idle":
                         # we must be pretty blocked, so give up..
                         c.reached_target = True
+
+def determine_action_for_child(c, i, cList, smb_list, m):
+    # If we picked up a medium snowball, assume we are crouched, and look for
+    # a large one near by to drop this one on.
+    if c.holding == HOLD_M:
+        drop_medium_or_crawl(c, m)
+    # Try to acquire a snowball if we need one.
+    elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
+        acquire_small_snowball(i, c, cList, m)
+    else:
+        finish_nearby_snowman_or_stand(c, m)
+            
+        possible_m = Move()
+
+        if m.action == "idle":
+            target_or_alternate_move(c, i, cList, smb_list, m, possible_m)
+                                
+        if m.action == "idle":
+            alternate_or_move(c, cList, m, possible_m)
+
+def determine_special_action(c, cList, smb_list, m):
+    if c.reached_target == True:
+        # Go look for close blue snowman, or snowman base (large),
+        # or go on programmed route around the field.
+
+        if c.build_stage == BUILD_STAGE_BASE:
+            if c.holding == HOLD_L:
+                m.action = "drop"
+                sx,sy = look_for(c, can_start_snowman)
+                if sx >= 0:
+                    m.dest = Point(sx,sy)
+                    c.build_stage = BUILD_STAGE_MIDDLE
+
+            elif c.holding < HOLD_P3:
+                # find 3 powdered snow
+                sx, sy = look_for_powdered_snow(c)
+                if sx >= 0:
+                    m.action = "pickup"
+                    m.dest = Point( sx, sy )
+                else:
+                    # TODO: crap.. go get some?
+                    pass
+            else:
+                m.action = "crush"
+        elif c.build_stage == BUILD_STAGE_MIDDLE:
+            if c.holding == HOLD_M:
+                m.action = "drop"
+                sx,sy = look_for(c, snowman_base_matcher)
+                if sx >= 0:
+                    m.dest = Point(sx,sy)
+                    c.build_stage = BUILD_STAGE_TOP
+
+            elif c.holding < HOLD_P2:
+                # find 2 powdered snow
+                sx, sy = look_for_powdered_snow(c)
+                if sx >= 0:
+                    m.action = "pickup"
+                    m.dest = Point( sx, sy )
+                else:
+                    # TODO: crap.. go get some?
+                    pass
+            else:
+                m.action = "crush"
+        elif c.build_stage == BUILD_STAGE_TOP:
+            if c.holding == HOLD_S1:
+                m.action = "drop"
+                sx,sy = look_for(c, almost_snowman)
+                if sx >= 0:
+                    m.dest = Point(sx,sy)
+                    c.build_stage = 4
+
+            elif c.holding < HOLD_P1:
+                # find 1 powdered snow
+                sx, sy = look_for_powdered_snow(c)
+                if sx >= 0:
+                    m.action = "pickup"
+                    m.dest = Point( sx, sy )
+                else:
+                    # TODO: crap.. go get some?
+                    pass
+            else:
+                m.action = "crush"
+
+    else:
+        if c.pos != c.target:
+            if c.dazed == 0:
+                moveToward( c, c.target, m )
+        else:
+            c.reached_target = True
+            m.action = "crouch"
+            c.build_stage = BUILD_STAGE_BASE
 
 ########################################################################################
 
@@ -1020,23 +1115,13 @@ while turnNum >= 0:
         c = cList[ i ]
         m = Move()
 
-        # If we picked up a medium snowball, assume we are crouched, and look for
-        # a large one near by to drop this one on.
-        if c.holding == HOLD_M:
-            drop_medium_or_crawl(c, m)
-        # Try to acquire a snowball if we need one.
-        elif (c.holding != HOLD_S1 and c.holding != HOLD_S2 and c.holding != HOLD_S3):
-            acquire_small_snowball(i, c, cList, m)
+        if i != 2:
+            determine_action_for_child(c, i, cList, smb_list, m)
         else:
-            finish_nearby_snowman_or_stand(c, m)
-            
-            possible_m = Move()
-
-            if m.action == "idle":
-                target_or_alternate_move(c, i, cList, smb_list, m, possible_m)
-                                
-            if m.action == "idle":
-                alternate_or_move(c, cList, m, possible_m)
+            if c.build_stage < 4:
+                determine_special_action(c, cList, smb_list, m)
+            else:
+                determine_action_for_child(c, i, cList, smb_list, m)
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
