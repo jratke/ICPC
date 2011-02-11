@@ -851,6 +851,78 @@ def move_toward_last_victim_or_average(c, cList, m):
     else:
         moveToAverage(c, cList, m)
 
+
+def target_or_alternate_move(c, i, cList, smb_list, m, possible_m):
+    # possible_m is an alternate move 
+    # that this child could take if there is no victim to target,
+    # the victim(s) can't be hit, or the victim is already
+    # targeted by another member of the team in this turn.
+    snowman_or_move_action(c, smb_list, possible_m)
+
+    # find potential victims.
+    vics = victims_in_range(c, cList)
+    if len(vics) > 0:
+        # choose the best one.
+        vic = choose_victim(vics)
+
+        # if the victim is already dazed 3 or more, then we might as 
+        # well do something else
+        if vic[4] >= 3 and possible_m.action != "idle":
+            m.action = possible_m.action
+            m.dest = possible_m.dest
+        else:
+            # set action to throw and set the dest.
+            chosen_vic = target_victim(c, cList, vic, m)
+            if chosen_vic != 0:
+                # If same victim targeted by someone else in 
+                # this turn, then perhaps we should do something 
+                # else, like target a different victim. It's best to target
+                # someone else because we still want to get 10 points for
+                # hitting someone, but if we hit someone else, they too 
+                # will be dazed for 4 turns.
+                if cList[chosen_vic].targeted_by == -1:
+                    c.last_victim = chosen_vic
+                    cList[chosen_vic].targeted_by = i
+                else:
+                    if possible_m.action != "idle":
+                        m.action = possible_m.action
+                        m.dest = possible_m.dest
+                    else:
+                        try_for_alternate_victim(c, i, cList, vics, m)
+            else:
+                # can't hit that one, are there more?
+                if len(vics) > 1:
+                    # can we target the second victim in the list?
+                    chosen_vic = target_victim(c, cList, vics[1], m)
+
+                    # if we think we can hit this alternate target
+                    if chosen_vic != 0:
+                        c.last_victim = chosen_vic
+                        cList[chosen_vic].targeted_by = i
+                    else:
+                        m.action = possible_m.action
+                        m.dest = possible_m.dest
+                        
+
+def alternate_or_move(c, cList, m, possible_m):
+    if possible_m.action != "idle":
+        m.action = possible_m.action
+        m.dest = possible_m.dest
+    else:
+        if c.reached_target == True:
+            move_toward_last_victim_or_average(c, cList, m)
+        else:
+            if c.pos == c.target:
+                c.reached_target = True
+                # TODO, do something better...  valid_random_movement(c, m)
+                moveToward(c, Point(15,15), m)
+            else:
+                if c.dazed == 0:
+                    moveToward( c, c.target, m )
+                    if m.action == "idle":
+                        # we must be pretty blocked, so give up..
+                        c.reached_target = True
+
 ########################################################################################
 
 # Source of randomness
@@ -961,76 +1033,10 @@ while turnNum >= 0:
             possible_m = Move()
 
             if m.action == "idle":
-
-                # possible_m is an alternate move 
-                # that this child could take if there is no victim to target,
-                # the victim(s) can't be hit, or the victim is already
-                # targeted by another member of the team in this turn.
-                snowman_or_move_action(c, smb_list, possible_m)
-
-                # find potential victims.
-                vics = victims_in_range(c, cList)
-                if len(vics) > 0:
-                    # choose the best one.
-                    vic = choose_victim(vics)
-
-                    # if the victim is already dazed 3 or more, then we might as 
-                    # well do something else
-                    if vic[4] >= 3 and possible_m.action != "idle":
-                        m = possible_m
-                    else:
-                        # set action to throw and set the dest.
-                        chosen_vic = target_victim(c, cList, vic, m)
-                        if chosen_vic != 0:
-                            # If same victim targeted by someone else in 
-                            # this turn, then perhaps we should do something 
-                            # else, like target a different victim. It's best to target
-                            # someone else because we still want to get 10 points for
-                            # hitting someone, but if we hit someone else, they too 
-                            # will be dazed for 4 turns.
-                            if cList[chosen_vic].targeted_by == -1:
-                                c.last_victim = chosen_vic
-                                cList[chosen_vic].targeted_by = i
-                            else:
-                                if possible_m.action != "idle":
-                                    m = possible_m
-                                else:
-                                    try_for_alternate_victim(c, i, cList, vics, m)
-                        else:
-                            # can't hit that one, are there more?
-                            if len(vics) > 1:
-                                # can we target the second victim in the list?
-                                chosen_vic = target_victim(c, cList, vics[1], m)
-
-                                # if we think we can hit this alternate target
-                                if chosen_vic != 0:
-                                    c.last_victim = chosen_vic
-                                    cList[chosen_vic].targeted_by = i
-                                else:
-                                    m = possible_m
+                target_or_alternate_move(c, i, cList, smb_list, m, possible_m)
                                 
             if m.action == "idle":
-
-                if possible_m.action != "idle":
-                    # do it.
-                    m = possible_m
-                else:
-                    # have we already reached our target at least once at some point?
-                    if c.reached_target == True:
-                        # now go free range...
-                        move_toward_last_victim_or_average(c, cList, m)
-                    else:
-                        if c.pos == c.target:
-                            c.reached_target = True
-                            # TODO, do something better...
-                            #valid_random_movement(c, m)
-                            moveToward(c, Point(15,15), m)
-                        else:
-                            if c.dazed == 0:
-                                moveToward( c, c.target, m )
-                                if m.action == "idle":
-                                    # we must be pretty blocked, so give up..
-                                    c.reached_target = True
+                alternate_or_move(c, cList, m, possible_m)
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
