@@ -1071,7 +1071,7 @@ def determine_special_action(c, cList, smb_list, m):
                 else:
                     sx,sy = look_for(c, almost_snowman)
                     if sx >= 0:
-                        if c.holding == HOLD_S1:
+                        if c.holding == HOLD_S1 or c.holding == HOLD_S2 or c.holding == HOLD_S3:
                             if c.standing:
                                 m.action = "crouch"
                             else:
@@ -1119,8 +1119,11 @@ def determine_special_action(c, cList, smb_list, m):
                                         moveToward( c, c.target, m )
         else:
             c.reached_target = True
-            m.action = "crouch"
-            c.build_stage = BUILD_STAGE_BASE
+            if not c.completed_circuit:
+                m.action = "crouch"
+                c.build_stage = BUILD_STAGE_BASE
+            else:
+                c.next_target()
 
 ########################################################################################
 
