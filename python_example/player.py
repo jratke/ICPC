@@ -81,7 +81,7 @@ class Point:
         else:
             return self.__dict__ != other.__dict__
 
-TARGETS = [ [(7,22)],[(22,22)],[(7,7)],[(22,7)] ]
+TARGETS = [ [(7,22)],[(22,22)],[(7,7),(22,7),(22,22),(7,22)],[(22,7)] ]
 
 BUILD_STAGE_BASE = 0
 BUILD_STAGE_MIDDLE = 1
@@ -120,7 +120,8 @@ class RedChild(Child):
         # which run target...
         self.reached_target = False
         self.target = Point(0, 0)
-        self.set_target(i)
+        self.target_index = 0
+        self.set_target()
 
         # if building a snowman
         self.build_stage = BUILD_STAGE_BASE
@@ -129,10 +130,14 @@ class RedChild(Child):
         if i == 2:
             self.mode = 1 # get to target, build a snowman.
 
-    def set_target(self, i):
-        if i < 4:
-            self.target.set(TARGETS[i][0][0], 
-                            TARGETS[i][0][1])
+    def set_target(self):
+        self.target.set(TARGETS[self.index][self.target_index][0], 
+                        TARGETS[self.index][self.target_index][1])
+
+    def next_target(self):
+        self.target_index = (self.target_index + 1) % len(TARGETS[self.index])
+        self.set_target()
+        self.reached_target = False
 
 class BlueChild(Child):
     def __init__(self, i):
@@ -951,63 +956,76 @@ def determine_special_action(c, cList, smb_list, m):
         # Go look for close blue snowman, or snowman base (large),
         # or go on programmed route around the field.
 
-        if c.build_stage == BUILD_STAGE_BASE:
-            if c.holding == HOLD_L:
-                m.action = "drop"
-                sx,sy = look_for(c, can_start_snowman)
+        if c.holding == HOLD_L:
+            m.action = "drop"
+            sx,sy = look_for(c, can_start_snowman)
+            if sx >= 0:
+                m.dest = Point(sx,sy)
+            c.build_stage = BUILD_STAGE_MIDDLE
+        elif c.holding == HOLD_M:
+            m.action = "drop"
+            sx,sy = look_for(c, snowman_base_matcher)
+            if sx >= 0:
+                m.dest = Point(sx,sy)
+            c.build_stage = BUILD_STAGE_TOP
+        elif c.holding == HOLD_S1:
+            m.action = "drop"
+            sx,sy = look_for(c, almost_snowman)
+            if sx >= 0:
+                m.dest = Point(sx,sy)
+            else:
+                # maybe someone else (teammate?) finished this snowman...
+                # Todo, if it's blue, take it back!
+                # Todo: any snowmen nearby I can crawl to, or run to?
+                sx,sy = look_for(c, can_drop_small)
                 if sx >= 0:
                     m.dest = Point(sx,sy)
-                    c.build_stage = BUILD_STAGE_MIDDLE
-
-            elif c.holding < HOLD_P3:
-                # find 3 powdered snow
-                sx, sy = look_for_powdered_snow(c)
-                if sx >= 0:
-                    m.action = "pickup"
-                    m.dest = Point( sx, sy )
+            c.build_stage = 3
+        else:
+            if c.build_stage == BUILD_STAGE_BASE:
+ 
+                if c.holding < HOLD_P3:
+                    # find 3 powdered snow
+                    sx, sy = look_for_powdered_snow(c)
+                    if sx >= 0:
+                        m.action = "pickup"
+                        m.dest = Point( sx, sy )
+                    else:
+                        # TODO: crap.. go get some?
+                        pass
                 else:
-                    # TODO: crap.. go get some?
-                    pass
-            else:
-                m.action = "crush"
-        elif c.build_stage == BUILD_STAGE_MIDDLE:
-            if c.holding == HOLD_M:
-                m.action = "drop"
-                sx,sy = look_for(c, snowman_base_matcher)
-                if sx >= 0:
-                    m.dest = Point(sx,sy)
-                    c.build_stage = BUILD_STAGE_TOP
-
-            elif c.holding < HOLD_P2:
-                # find 2 powdered snow
-                sx, sy = look_for_powdered_snow(c)
-                if sx >= 0:
-                    m.action = "pickup"
-                    m.dest = Point( sx, sy )
+                    m.action = "crush"
+            elif c.build_stage == BUILD_STAGE_MIDDLE:
+                
+                if c.holding < HOLD_P2:
+                    # find 2 powdered snow
+                    sx, sy = look_for_powdered_snow(c)
+                    if sx >= 0:
+                        m.action = "pickup"
+                        m.dest = Point( sx, sy )
+                    else:
+                        # TODO: crap.. go get some?
+                        pass
                 else:
-                    # TODO: crap.. go get some?
-                    pass
-            else:
-                m.action = "crush"
-        elif c.build_stage == BUILD_STAGE_TOP:
-            if c.holding == HOLD_S1:
-                m.action = "drop"
-                sx,sy = look_for(c, almost_snowman)
-                if sx >= 0:
-                    m.dest = Point(sx,sy)
-                    c.build_stage = 4
+                    m.action = "crush"
+            elif c.build_stage == BUILD_STAGE_TOP:
 
-            elif c.holding < HOLD_P1:
-                # find 1 powdered snow
-                sx, sy = look_for_powdered_snow(c)
-                if sx >= 0:
-                    m.action = "pickup"
-                    m.dest = Point( sx, sy )
+                if c.holding < HOLD_P1:
+                    # find 1 powdered snow
+                    sx, sy = look_for_powdered_snow(c)
+                    if sx >= 0:
+                        m.action = "pickup"
+                        m.dest = Point( sx, sy )
+                    else:
+                        # TODO: crap.. go get some?
+                        pass
                 else:
-                    # TODO: crap.. go get some?
-                    pass
-            else:
-                m.action = "crush"
+                    m.action = "crush"
+
+            elif c.build_stage == 3:
+                # 
+                m.action = "stand"
+                c.next_target()
 
     else:
         if c.pos != c.target:
