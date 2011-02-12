@@ -81,7 +81,7 @@ class Point:
         else:
             return self.__dict__ != other.__dict__
 
-TARGETS = [ [(7,22)],[(22,22)],[(7,7),(22,7),(22,22),(7,22)],[(22,7)] ]
+TARGETS = [ [(7,22)],[(22,22)],[(7,6),(22,7),(22,22),(7,22)],[(22,7)] ]
 
 BUILD_STAGE_BASE = 0
 BUILD_STAGE_MIDDLE = 1
@@ -1029,8 +1029,59 @@ def determine_special_action(c, cList, smb_list, m):
 
     else:
         if c.pos != c.target:
-            if c.dazed == 0:
-                moveToward( c, c.target, m )
+
+            sx,sy = look_for(c, blue_snowman)
+            if sx >= 0:
+                # take steps to convert it...
+                if c.standing:
+                    m.action = "crouch"
+                else:
+                    # assume not holding yet.
+                    pickup_if_no_one_else_will(c, 2, cList, sx, sy, m)
+
+            else:
+                sx,sy = can_run_to(c, blue_snowman)
+                if sx >= 0:
+                    if not c.standing:
+                        m.action = "stand"
+                    else:
+                        moveToward(c, Point(sx,sy), m)
+                else:
+                    sx,sy = look_for(c, almost_snowman)
+                    if sx >= 0:
+                        if c.holding == HOLD_S1:
+                            if c.standing:
+                                m.action = "crouch"
+                            else:
+                                m.action = "drop"
+                                m.dest = Point(sx,sy)
+                        else:
+                            if c.standing:
+                                m.action = "crouch"
+                            else:
+                                if c.holding == HOLD_P1:
+                                    m.action = "crush"
+                                else:
+                                    # lookfor snow and pickup if no one else will?
+                                    sx, sy = look_for_powdered_snow(c)
+                                    if sx >= 0:
+                                        pickup_if_no_one_else_will(c, 2, cList, sx, sy, m)
+                                    else:
+                                        moveToward( c, c.target, m )
+                    else:
+                        sx,sy = can_run_to(c, almost_snowman)
+                        if sx >= 0:
+                            if not c.standing:
+                                m.action = "stand"
+                            else:
+                                moveToward(c, Point(sx,sy), m)
+
+                        else:
+                            if not c.standing:
+                                m.action = "stand"
+                            else:
+                                if c.dazed == 0:
+                                    moveToward( c, c.target, m )
         else:
             c.reached_target = True
             m.action = "crouch"
