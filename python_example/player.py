@@ -122,6 +122,7 @@ class RedChild(Child):
         self.target = Point(0, 0)
         self.target_index = 0
         self.set_target()
+        self.completed_circuit = False
 
         # if building a snowman
         self.build_stage = BUILD_STAGE_BASE
@@ -539,6 +540,10 @@ def blue_snowman(ox, oy):
 def can_drop_small(ox, oy):
     return (ground[ox][oy] == GROUND_EMPTY and
             height[ox][oy] < 9)
+
+def can_drop_medium(ox, oy):
+    return (ground[ox][oy] == GROUND_EMPTY and
+            height[ox][oy] < 8)
 
 def can_start_snowman(ox,oy):
     return (ground[ox][oy] == GROUND_EMPTY and
@@ -967,7 +972,15 @@ def determine_special_action(c, cList, smb_list, m):
             sx,sy = look_for(c, snowman_base_matcher)
             if sx >= 0:
                 m.dest = Point(sx,sy)
-            c.build_stage = BUILD_STAGE_TOP
+                c.build_stage = BUILD_STAGE_TOP
+            else:
+                # somebody walked through our large!
+                # look for any safe place to drop it, and go back to BUILD_STAGE_BASE
+                sx,sy = look_for(c, can_drop_medium)
+                if sx >= 0:
+                    m.dest = Point(sx,sy)
+                c.build_stage = BUILD_STAGE_BASE
+
         elif c.holding == HOLD_S1:
             m.action = "drop"
             sx,sy = look_for(c, almost_snowman)
@@ -996,6 +1009,8 @@ def determine_special_action(c, cList, smb_list, m):
                 else:
                     m.action = "crush"
             elif c.build_stage == BUILD_STAGE_MIDDLE:
+
+                # TODO, if I'm crouched next to a middle, pick it up instead of making one
                 
                 if c.holding < HOLD_P2:
                     # find 2 powdered snow
@@ -1021,10 +1036,14 @@ def determine_special_action(c, cList, smb_list, m):
                         pass
                 else:
                     m.action = "crush"
-
             elif c.build_stage == 3:
                 # 
                 m.action = "stand"
+
+                if c.target_index == 1:   # How about after two snowmen?
+                    # went around once.  Now primary mission should be snowmen!
+                    c.completed_circuit = True
+
                 c.next_target()
 
     else:
@@ -1069,19 +1088,32 @@ def determine_special_action(c, cList, smb_list, m):
                                     else:
                                         moveToward( c, c.target, m )
                     else:
-                        sx,sy = can_run_to(c, almost_snowman)
-                        if sx >= 0:
-                            if not c.standing:
-                                m.action = "stand"
-                            else:
-                                moveToward(c, Point(sx,sy), m)
-
+                        if not c.standing:
+                            m.action = "stand"
                         else:
-                            if not c.standing:
-                                m.action = "stand"
+                            sx,sy = can_run_to(c, almost_snowman)
+                            if sx >= 0:
+                                moveToward(c, Point(sx,sy), m)
                             else:
-                                if c.dazed == 0:
-                                    moveToward( c, c.target, m )
+                                if c.completed_circuit:
+                                    # Now look for any blue snowmen or almost snowmen!
+                                    snowmen = []
+                                    for sm in smb_list:
+                                        dx = sm[0] - c.pos.x
+                                        dy = sm[1] - c.pos.y                    
+                                        snowmen.append((dx*dx+dy*dy, sm[0], sm[1]))
+
+                                    if len(snowmen) > 1:
+                                        snowmen.sort(lambda x,y:cmp(x[0],y[0])) # sort by the distances 
+
+                                    if len(snowmen) > 0:
+                                        moveToward(c, Point(snowmen[0][1], snowmen[0][2]), m)
+                                    else:
+                                        if c.dazed == 0:
+                                            moveToward( c, c.target, m )
+                                else:
+                                    if c.dazed == 0:
+                                        moveToward( c, c.target, m )
         else:
             c.reached_target = True
             m.action = "crouch"
@@ -1137,8 +1169,8 @@ while turnNum >= 0:
                 height[ i ][ j ] = string.find( string.digits, tokens[ j ][ 0 ] )
                 ground[ i ][ j ] = string.find( string.ascii_lowercase, tokens[ j ][ 1 ] )
                 if (ground[i][j] == GROUND_SMB or
-                    ground[i][j] == GROUND_LM):
-                    smb_list.append((i, j))  # height doesn't matter anymore
+                    (ground[i][j] == GROUND_LM and height < 9)):  # ignore if we can't finish
+                    smb_list.append((i, j))
                 
     # Read the states of all the children.
     for i in range( CCOUNT * 2 ):
