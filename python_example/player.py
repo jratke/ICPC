@@ -998,14 +998,17 @@ def determine_special_action(c, cList, smb_list, m):
             if c.build_stage == BUILD_STAGE_BASE:
  
                 if c.holding < HOLD_P3:
-                    # find 3 powdered snow
-                    sx, sy = look_for_powdered_snow(c)
-                    if sx >= 0:
-                        m.action = "pickup"
-                        m.dest = Point( sx, sy )
+                    if c.standing:
+                        m.action = "crouch"
                     else:
-                        # TODO: crap.. go get some?
-                        pass
+                        # find 3 powdered snow
+                        sx, sy = look_for_powdered_snow(c)
+                        if sx >= 0:
+                            m.action = "pickup"
+                            m.dest = Point( sx, sy )
+                        else:
+                            # TODO: crap.. go get some?
+                            pass
                 else:
                     m.action = "crush"
             elif c.build_stage == BUILD_STAGE_MIDDLE:
