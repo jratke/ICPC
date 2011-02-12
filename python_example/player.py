@@ -1079,9 +1079,14 @@ def determine_special_action(c, cList, smb_list, m):
                 if c.standing:
                     m.action = "crouch"
                 else:
-                    # assume not holding yet.
-                    pickup_if_no_one_else_will(c, 2, cList, sx, sy, m)
-
+                    if c.holding == HOLD_EMPTY:
+                        pickup_if_no_one_else_will(c, 2, cList, sx, sy, m)
+                    else:
+                        # might have powdered snow that I need to get rid of now...
+                        sx,sy = look_for(c, can_drop_small)
+                        if sx >= 0:
+                            m.action = "drop"
+                            m.dest = Point(sx,sy)
             else:
                 sx,sy = can_run_to(c, blue_snowman)
                 if sx >= 0:
@@ -1140,14 +1145,18 @@ def determine_special_action(c, cList, smb_list, m):
                                         moveToward( c, c.target, m )
         else:
             c.reached_target = True
-            if c.target_index == 3:
-                c.got_four_targets = True
 
-            if not c.completed_circuit:
+            # if third or fourth target, and no blue snowmen seen yet, plant ours.
+            if (((c.target_index == 2 or c.target_index == 3) and smb_seen == 0) or
+                not c.completed_circuit):
                 m.action = "crouch"
                 c.build_stage = BUILD_STAGE_BASE
             else:
-                c.next_target()
+                if c.target_index == 3 and smb_seen == 0:
+                    c.got_four_targets = True
+                else:
+                    c.next_target()
+
 
 ########################################################################################
 
@@ -1156,6 +1165,9 @@ rnd = random.Random()
 
 # Current game score for self (red) and opponent (blue).
 score = [ 0, 0 ]
+
+# Keep track of how many blue snowmen we've seen.
+smb_seen = 0
 
 # Current snow height in each cell.
 height = []
@@ -1201,6 +1213,8 @@ while turnNum >= 0:
                 if (ground[i][j] == GROUND_SMB or
                     (ground[i][j] == GROUND_LM and height < 9)):  # ignore if we can't finish
                     smb_list.append((i, j))
+                    if ground[i][j] == GROUND_SMB:
+                        smb_seen += 1
                 
     # Read the states of all the children.
     for i in range( CCOUNT * 2 ):
@@ -1250,7 +1264,8 @@ while turnNum >= 0:
             determine_action_for_child(c, i, cList, smb_list, m)
         else:
             #sys.stderr.write( "%d %d\n" % ( c.got_four_targets, len(smb_list) ) )
-            if c.got_four_targets and len(smb_list) == 0:
+            if c.got_four_targets and smb_seen == 0:   # len(smb_list) == 0:
+                # got all the way around, and haven't seen any blue snowmen.
                 determine_action_for_child(c, i, cList, smb_list, m)
             else:
                 determine_special_action(c, cList, smb_list, m)
