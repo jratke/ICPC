@@ -175,138 +175,155 @@ def moveOrRandom(c,px,py,m):
     else:
         valid_random_movement(c,m)
 
+
+def run_diagonal(c, target, m):
+    # Run diagonally.
+    m.action = "run"
+    px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
+    py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
+
+    if can_move(px, py):
+        m.dest = Point(px,py)
+    else:
+        # just try up or down only
+        if can_move(c.pos.x, py):
+            m.dest = Point(c.pos.x,py)
+        elif can_move(c.pos.x+1, c.pos.y):  # try right...
+            m.dest = Point(c.pos.x+1, c.pos.y)
+        elif can_move(c.pos.x-1, c.pos.y):  # try left...
+            m.dest = Point(c.pos.x-1, c.pos.y)
+        else:
+            m.action = "idle"
+            m.dest = None
+
+def run_horizontal(c, target, m):
+    # Run left or right
+    m.action = "run"
+    dx = clamp( target.x - c.pos.x, -2, 2 )
+    if dx > 0:
+        if not can_move(c.pos.x + 1, c.pos.y):
+            # can't do it.  
+            # we're already at target y, but try to move diagonally
+            if can_move(c.pos.x + 1, c.pos.y+1):
+                m.dest = Point(c.pos.x + 1, c.pos.y+1)
+            elif can_move(c.pos.x + 1, c.pos.y-1):
+                m.dest = Point(c.pos.x + 1, c.pos.y-1)
+             # else have to go off course for a bit.
+            elif can_move(c.pos.x, c.pos.y+1):
+                m.dest = Point(c.pos.x, c.pos.y+1)
+            elif can_move(c.pos.x, c.pos.y-1):
+                m.dest = Point(c.pos.x, c.pos.y-1)
+            else:
+                m.action = "idle"
+                m.dest = None
+                return
+        else:
+            # want to move two and can move two as well?
+            if dx > 1 and can_move(c.pos.x + 2, c.pos.y):
+                # good, do it...
+                m.dest = Point(c.pos.x + 2, c.pos.y)
+            else:
+                # just one will have to do
+                m.dest = Point(c.pos.x + 1, c.pos.y)
+    elif dx < 0:
+        if not can_move(c.pos.x - 1, c.pos.y):
+            # can't do it.  
+            # we're already at target y, but try to move diagonally
+            if can_move(c.pos.x - 1, c.pos.y+1):
+                m.dest = Point(c.pos.x - 1, c.pos.y+1)
+            elif can_move(c.pos.x - 1, c.pos.y-1):
+                m.dest = Point(c.pos.x - 1, c.pos.y-1)
+            # else have to go off course for a bit.
+            elif can_move(c.pos.x, c.pos.y+1):
+                m.dest = Point(c.pos.x, c.pos.y+1)
+            elif can_move(c.pos.x, c.pos.y-1):
+                m.dest = Point(c.pos.x, c.pos.y-1)
+            else:
+                m.action = "idle"
+                m.dest = None
+                return
+        else:
+            # want to move left two and can move two as well?
+            if dx < 1 and can_move(c.pos.x - 2, c.pos.y):
+                # good, do it...
+                m.dest = Point(c.pos.x - 2, c.pos.y)
+            else:
+                # just one will have to do
+                m.dest = Point(c.pos.x - 1, c.pos.y)
+
+def run_vertical(c, target, m):
+    # Run up or down.
+    m.action = "run"
+    dy = clamp( target.y - c.pos.y, -2, 2 )
+    if dy > 0:
+        if not can_move(c.pos.x, c.pos.y+1):
+            # can't do it.  
+            # we're already at target x, but try to move diagonal
+            if can_move(c.pos.x+1, c.pos.y+1):
+                m.dest = Point(c.pos.x+1, c.pos.y+1)
+            elif can_move(c.pos.x-1, c.pos.y+1):
+                m.dest = Point(c.pos.x-1, c.pos.y+1)
+            elif can_move(c.pos.x+1, c.pos.y):
+                m.dest = Point(c.pos.x+1, c.pos.y)
+            elif can_move(c.pos.x-1, c.pos.y):
+                m.dest = Point(c.pos.x-1, c.pos.y)
+            else:
+                m.action = "idle"
+                m.dest = None
+                return
+        else:
+            # want to move two and can move two as well?
+            if dy > 1 and can_move(c.pos.x, c.pos.y+2):
+                # good, do it...
+                m.dest = Point(c.pos.x, c.pos.y+2)
+            else:
+                # just one
+                m.dest = Point(c.pos.x, c.pos.y+1)
+    elif dy < 0:
+        if not can_move(c.pos.x, c.pos.y-1):
+            # can't do it.  
+            # we're already at target x, but try to move diagonal
+            if can_move(c.pos.x+1, c.pos.y-1):
+                m.dest = Point(c.pos.x+1, c.pos.y-1)
+            elif can_move(c.pos.x-1, c.pos.y-1):
+                m.dest = Point(c.pos.x-1, c.pos.y-1)
+            elif can_move(c.pos.x+1, c.pos.y):
+                m.dest = Point(c.pos.x+1, c.pos.y)
+            elif can_move(c.pos.x-1, c.pos.y):
+                m.dest = Point(c.pos.x-1, c.pos.y)
+            else:
+                m.action = "idle"
+                m.dest = None
+                return
+        else:
+            # want to move two and can move two as well?
+            if dy < 1 and can_move(c.pos.x, c.pos.y-2):
+                # good, do it...
+                m.dest = Point(c.pos.x, c.pos.y-2)
+            else:
+                # just one will have to do
+                m.dest = Point(c.pos.x, c.pos.y-1)
+
+
 # Fill in move m to move the child c twoard the given target location, either
 # crawling or running.
-
 def moveToward( c, target, m ):
+
+    dx = target.x - c.pos.x
+    dy = target.y - c.pos.y
+
     if c.standing:
         # Run to the destination
         if c.pos.x != target.x:
             if c.pos.y != target.y:
-                # Run diagonally.
-                m.action = "run"
-                px = c.pos.x + clamp( target.x - c.pos.x, -1, 1 )
-                py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
-
-                if can_move(px, py):
-                    m.dest = Point(px,py)
+                if dx*dx > dy*dy:
+                    run_horizontal(c, target, m)
                 else:
-                    # just try up or down only
-                    if can_move(c.pos.x, py):
-                        m.dest = Point(c.pos.x,py)
-                    elif can_move(c.pos.x+1, c.pos.y):  # try right...
-                        m.dest = Point(c.pos.x+1, c.pos.y)
-                    elif can_move(c.pos.x-1, c.pos.y):  # try left...
-                        m.dest = Point(c.pos.x-1, c.pos.y)
-                    else:
-                        m.action = "idle"
-                        m.dest = None
+                    run_diagonal(c, target, m)
             else:
-                # Run left or right
-                m.action = "run"
-                dx = clamp( target.x - c.pos.x, -2, 2 )
-                if dx > 0:
-                    if not can_move(c.pos.x + 1, c.pos.y):
-                        # can't do it.  
-                        # we're already at target y, but try to move diagonally
-                        if can_move(c.pos.x + 1, c.pos.y+1):
-                            m.dest = Point(c.pos.x + 1, c.pos.y+1)
-                        elif can_move(c.pos.x + 1, c.pos.y-1):
-                            m.dest = Point(c.pos.x + 1, c.pos.y-1)
-                        # else have to go off course for a bit.
-                        elif can_move(c.pos.x, c.pos.y+1):
-                            m.dest = Point(c.pos.x, c.pos.y+1)
-                        elif can_move(c.pos.x, c.pos.y-1):
-                            m.dest = Point(c.pos.x, c.pos.y-1)
-                        else:
-                            m.action = "idle"
-                            m.dest = None
-                            return
-                    else:
-                        # want to move two and can move two as well?
-                        if dx > 1 and can_move(c.pos.x + 2, c.pos.y):
-                            # good, do it...
-                            m.dest = Point(c.pos.x + 2, c.pos.y)
-                        else:
-                            # just one will have to do
-                            m.dest = Point(c.pos.x + 1, c.pos.y)
-                elif dx < 0:
-                    if not can_move(c.pos.x - 1, c.pos.y):
-                        # can't do it.  
-                        # we're already at target y, but try to move diagonally
-                        if can_move(c.pos.x - 1, c.pos.y+1):
-                            m.dest = Point(c.pos.x - 1, c.pos.y+1)
-                        elif can_move(c.pos.x - 1, c.pos.y-1):
-                            m.dest = Point(c.pos.x - 1, c.pos.y-1)
-                        # else have to go off course for a bit.
-                        elif can_move(c.pos.x, c.pos.y+1):
-                            m.dest = Point(c.pos.x, c.pos.y+1)
-                        elif can_move(c.pos.x, c.pos.y-1):
-                            m.dest = Point(c.pos.x, c.pos.y-1)
-                        else:
-                            m.action = "idle"
-                            m.dest = None
-                            return
-                    else:
-                        # want to move left two and can move two as well?
-                        if dx < 1 and can_move(c.pos.x - 2, c.pos.y):
-                            # good, do it...
-                            m.dest = Point(c.pos.x - 2, c.pos.y)
-                        else:
-                            # just one will have to do
-                            m.dest = Point(c.pos.x - 1, c.pos.y)
+                run_horizontal(c, target, m)
         elif c.pos.y != target.y:
-            # Run up or down.
-            m.action = "run"
-            dy = clamp( target.y - c.pos.y, -2, 2 )
-            if dy > 0:
-                if not can_move(c.pos.x, c.pos.y+1):
-                    # can't do it.  
-                    # we're already at target x, but try to move diagonal
-                    if can_move(c.pos.x+1, c.pos.y+1):
-                        m.dest = Point(c.pos.x+1, c.pos.y+1)
-                    elif can_move(c.pos.x-1, c.pos.y+1):
-                        m.dest = Point(c.pos.x-1, c.pos.y+1)
-                    elif can_move(c.pos.x+1, c.pos.y):
-                        m.dest = Point(c.pos.x+1, c.pos.y)
-                    elif can_move(c.pos.x-1, c.pos.y):
-                        m.dest = Point(c.pos.x-1, c.pos.y)
-                    else:
-                        m.action = "idle"
-                        m.dest = None
-                        return
-                else:
-                    # want to move two and can move two as well?
-                    if dy > 1 and can_move(c.pos.x, c.pos.y+2):
-                        # good, do it...
-                        m.dest = Point(c.pos.x, c.pos.y+2)
-                    else:
-                        # just one
-                        m.dest = Point(c.pos.x, c.pos.y+1)
-            elif dy < 0:
-                if not can_move(c.pos.x, c.pos.y-1):
-                    # can't do it.  
-                    # we're already at target x, but try to move diagonal
-                    if can_move(c.pos.x+1, c.pos.y-1):
-                        m.dest = Point(c.pos.x+1, c.pos.y-1)
-                    elif can_move(c.pos.x-1, c.pos.y-1):
-                        m.dest = Point(c.pos.x-1, c.pos.y-1)
-                    elif can_move(c.pos.x+1, c.pos.y):
-                        m.dest = Point(c.pos.x+1, c.pos.y)
-                    elif can_move(c.pos.x-1, c.pos.y):
-                        m.dest = Point(c.pos.x-1, c.pos.y)
-                    else:
-                        m.action = "idle"
-                        m.dest = None
-                        return
-                else:
-                    # want to move two and can move two as well?
-                    if dy < 1 and can_move(c.pos.x, c.pos.y-2):
-                        # good, do it...
-                        m.dest = Point(c.pos.x, c.pos.y-2)
-                    else:
-                        # just one will have to do
-                        m.dest = Point(c.pos.x, c.pos.y-1)
+            run_vertical(c, target, m)
     else:
         # Crawl to the destination
         if c.pos.x != target.x:
