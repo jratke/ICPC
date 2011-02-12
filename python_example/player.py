@@ -113,6 +113,8 @@ class RedChild(Child):
         # Last location child attempted to pickup snow from, drop to or move to.
         self.last_dest = Point( -1, -1 )
 
+        self.last_pos = Point(-1, -1)
+
         # The child index of the last child that we tried to
         # throw a snowball at...
         self.last_victim = 0
@@ -1269,6 +1271,7 @@ while turnNum >= 0:
                 determine_action_for_child(c, i, cList, smb_list, m)
             else:
                 determine_special_action(c, cList, smb_list, m)
+                sys.stderr.write( "%d %d\n" % ( c.target.x, c.target.y ) )
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
@@ -1279,7 +1282,16 @@ while turnNum >= 0:
                     m.action = "idle"
                     m.dest = None
 
+        if ((c.last_action == "crawl" or c.last_action == "run") and
+            c.last_action == m.action and
+            c.last_dest == m.dest and
+            c.pos == c.last_pos and
+            c.dazed == 0):
+            m.action = "idle"
+            m.dest = None
+
         c.last_action = m.action
+        c.last_pos = c.pos
 
         # Write out the child's move
         if m.dest == None:
