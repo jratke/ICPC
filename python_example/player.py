@@ -1225,10 +1225,7 @@ while turnNum >= 0:
         if i != 2:
             determine_action_for_child(c, i, cList, smb_list, m)
         else:
-            if c.build_stage < 4:
-                determine_special_action(c, cList, smb_list, m)
-            else:
-                determine_action_for_child(c, i, cList, smb_list, m)
+            determine_special_action(c, cList, smb_list, m)
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
