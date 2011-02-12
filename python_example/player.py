@@ -123,6 +123,7 @@ class RedChild(Child):
         self.target_index = 0
         self.set_target()
         self.completed_circuit = False
+        self.got_four_targets = False
 
         # if building a snowman
         self.build_stage = BUILD_STAGE_BASE
@@ -411,7 +412,7 @@ def victims_in_range(c, cList):
             #steps = max(dx,dy)
             dsq = dx * dx + dy * dy
 
-            if dsq < 8 * 8:
+            if dsq < 12 * 12:
                 vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed,cList[j].standing,j))
         j += 1
     return vics
@@ -1064,6 +1065,9 @@ def determine_special_action(c, cList, smb_list, m):
                     # went around once.  Now primary mission should be snowmen!
                     c.completed_circuit = True
 
+                if c.target_index == 3:
+                    c.got_four_targets = True
+
                 c.next_target()
 
     else:
@@ -1136,6 +1140,9 @@ def determine_special_action(c, cList, smb_list, m):
                                         moveToward( c, c.target, m )
         else:
             c.reached_target = True
+            if c.target_index == 3:
+                c.got_four_targets = True
+
             if not c.completed_circuit:
                 m.action = "crouch"
                 c.build_stage = BUILD_STAGE_BASE
@@ -1242,7 +1249,11 @@ while turnNum >= 0:
         if i != 2:
             determine_action_for_child(c, i, cList, smb_list, m)
         else:
-            determine_special_action(c, cList, smb_list, m)
+            #sys.stderr.write( "%d %d\n" % ( c.got_four_targets, len(smb_list) ) )
+            if c.got_four_targets and len(smb_list) == 0:
+                determine_action_for_child(c, i, cList, smb_list, m)
+            else:
+                determine_special_action(c, cList, smb_list, m)
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
