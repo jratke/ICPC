@@ -427,11 +427,11 @@ def what_to_do(c, cList, vics, m):
         threats = 0
         threat = -1
         for v in vics:
-            cindex = v[6]
-            if (cList[cindex].standing and cList[cindex].dazed == 0 and 
-                (cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3) and
-                dsq <= 8*8):
-                threat = cindex
+            if (v[5] and    # standing
+                v[4] == 0 and # not dazed
+                (v[3] == HOLD_S1 or v[3] == HOLD_S2 or v[3] == HOLD_S3) and
+                v[2] <= 8*8):
+                threat = v[6]  # index
                 threats += 1
 
         if threats == 0:
@@ -507,7 +507,7 @@ def can_hit(c, cList, vic):
     if vic[5]: vic_height = 9
     else: vic_height = 6
 
-    take_the_shot = False
+    good_shot = False
 
     # for each step 1 to steps
     for s in range(1,steps+1):
@@ -542,7 +542,7 @@ def can_hit(c, cList, vic):
                 child_height = 9
 
             if height_at_step_s <= child_height:
-                take_the_shot = True
+                good_shot = True
                 break
 
         # if anything we don't want to hit at this point
@@ -553,7 +553,7 @@ def can_hit(c, cList, vic):
                ground[atx][aty] != GROUND_SMB)))):
             break
 
-    if take_the_shot:
+    if good_shot:
         return True
     else:
         return False
