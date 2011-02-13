@@ -205,16 +205,13 @@ def run_horizontal(c, target, m):
     dx = clamp( target.x - c.pos.x, -2, 2 )
     if dx > 0:
         if not can_move(c.pos.x + 1, c.pos.y):
-            # can't do it.  
-            # we're already at target y, but try to move diagonally
             if can_move(c.pos.x + 1, c.pos.y+1):
                 m.dest = Point(c.pos.x + 1, c.pos.y+1)
             elif can_move(c.pos.x + 1, c.pos.y-1):
                 m.dest = Point(c.pos.x + 1, c.pos.y-1)
-             # else have to go off course for a bit.
-            elif can_move(c.pos.x, c.pos.y+1):
+            elif target.y >= c.pos.y and can_move(c.pos.x, c.pos.y+1):
                 m.dest = Point(c.pos.x, c.pos.y+1)
-            elif can_move(c.pos.x, c.pos.y-1):
+            elif target.y <= c.pos.y and can_move(c.pos.x, c.pos.y-1):
                 m.dest = Point(c.pos.x, c.pos.y-1)
             else:
                 m.action = "idle"
@@ -237,9 +234,9 @@ def run_horizontal(c, target, m):
             elif can_move(c.pos.x - 1, c.pos.y-1):
                 m.dest = Point(c.pos.x - 1, c.pos.y-1)
             # else have to go off course for a bit.
-            elif can_move(c.pos.x, c.pos.y+1):
+            elif target.y >= c.pos.y and can_move(c.pos.x, c.pos.y+1):
                 m.dest = Point(c.pos.x, c.pos.y+1)
-            elif can_move(c.pos.x, c.pos.y-1):
+            elif target.y <= c.pos.y and can_move(c.pos.x, c.pos.y-1):
                 m.dest = Point(c.pos.x, c.pos.y-1)
             else:
                 m.action = "idle"
@@ -266,9 +263,9 @@ def run_vertical(c, target, m):
                 m.dest = Point(c.pos.x+1, c.pos.y+1)
             elif can_move(c.pos.x-1, c.pos.y+1):
                 m.dest = Point(c.pos.x-1, c.pos.y+1)
-            elif can_move(c.pos.x+1, c.pos.y):
+            elif target.x >= c.pos.x and can_move(c.pos.x+1, c.pos.y):
                 m.dest = Point(c.pos.x+1, c.pos.y)
-            elif can_move(c.pos.x-1, c.pos.y):
+            elif target.x <= c.pos.x and can_move(c.pos.x-1, c.pos.y):
                 m.dest = Point(c.pos.x-1, c.pos.y)
             else:
                 m.action = "idle"
@@ -290,9 +287,9 @@ def run_vertical(c, target, m):
                 m.dest = Point(c.pos.x+1, c.pos.y-1)
             elif can_move(c.pos.x-1, c.pos.y-1):
                 m.dest = Point(c.pos.x-1, c.pos.y-1)
-            elif can_move(c.pos.x+1, c.pos.y):
+            elif target.x >= c.pos.x and can_move(c.pos.x+1, c.pos.y):
                 m.dest = Point(c.pos.x+1, c.pos.y)
-            elif can_move(c.pos.x-1, c.pos.y):
+            elif target.x <= c.pos.x and can_move(c.pos.x-1, c.pos.y):
                 m.dest = Point(c.pos.x-1, c.pos.y)
             else:
                 m.action = "idle"
