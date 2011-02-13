@@ -434,6 +434,7 @@ def choose_victim(vics):
 def target_victim(c, cList, vic, m):
     global ground
     global height
+    global child_at
     steps = max(abs(vic[0] * 2), abs(vic[1] * 2))
     if c.standing:  start_height = 9
     else: start_height = 6
