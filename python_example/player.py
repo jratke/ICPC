@@ -428,7 +428,7 @@ def victims_in_range(c, cList):
 def choose_victim(vics):
     vics.sort(lambda x,y:cmp(x[2],y[2])) # dsq 
     vics.sort(lambda x,y:cmp(x[4],y[4])) # dazed
-    vics.sort(lambda x,y:cmp(x[3],y[3]), reverse=True)  # holding.  
+    #vics.sort(lambda x,y:cmp(x[3],y[3]), reverse=True)  # holding.  
     return vics[0]
 
 def target_victim(c, cList, vic, m):
@@ -442,6 +442,8 @@ def target_victim(c, cList, vic, m):
     else: vic_height = 6
 
     take_the_shot = False
+    should_catch = False
+
     # for each step 1 to steps
     for s in range(1,steps+1):
         # calculate height
@@ -453,38 +455,52 @@ def target_victim(c, cList, vic, m):
         # have to do... 
         # if ground[atx][aty] == child (red or blue).. then find out which one
         # perhaps it is the one we are targeting, vic[6], but perhaps not.
+        if ground[atx][aty] == GROUND_TREE:
+            break
 
-        #cindex = find_child_at(atx, aty, cList)
-        #child_height = 0
-        #if cindex >= 0:
-        #    child_height = 6
-        #    if cList[cindex].standing:
-        #        child_height = 9
+        if ground[atx][aty] == GROUND_CHILD_RED:
+            cindex = find_child_at(atx, aty, cList)
+            if cList[cindex].standing:
+                break
+            else:
+                # height = 6
+                if cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3:
+                    break
+                if height[atx][aty] <= 6:
+                    break
+
+        if ground[atx][aty] == GROUND_CHILD_BLUE:
+            cindex = find_child_at(atx, aty, cList)
+            child_height = 6
+            if cList[cindex].standing:
+                child_height = 9
+
+            # determine if we should catch
+            if (cList[cindex].standing and cList[cindex].dazed == 0 and 
+                cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3 and
+                dsq <= 8*8):
+                should_catch = True
+                break
+
+            if height_at_step_s <= child_height:
+                take_the_shot = True
+                break
 
         # if anything we don't want to hit at this point
         # including the ground, abort!
-        if (ground[atx][aty] == GROUND_TREE or
-            ground[atx][aty] == GROUND_CHILD_RED or  # don't take a chance
-            # TODO: might be ok, if player on our team is crouching.
-            (height[atx][aty] >= 0 and    # we know the height  and...
+        if ((height[atx][aty] >= 0 and    # we know the height  and...
              (height_at_step_s < height[atx][aty]  or
               (height_at_step_s == height[atx][aty] and
                ground[atx][aty] != GROUND_SMB)))):
             break
 
-        # if something we do want to hit.  Take the shot!!!
-        if ground[atx][aty] == GROUND_CHILD_BLUE:  # TODO: and they are not ducking...
-            take_the_shot = True
-            break
+    if should_catch:
+        m.action = "catch"
+        m.dest = Point( c.pos.x + vic[0],
+                        c.pos.y + vic[1] )
+        return vic[6]
 
-        # a blue snow man is ok, only if we are going to hit it in the head
-        # a red snowman is ok, only if we throw over it..
-
-        # if we went through all that, and we didn't hit anything, 
-        # (maybe it would pass over the target) 
-        # then don't take the shot either.
-
-    if take_the_shot:
+    elif take_the_shot:
         m.action = "throw"
         # throw past the victim, so we will probably hit them
         # before the snowball falls into the snow.
@@ -809,7 +825,7 @@ def try_for_alternate_victim(c, i, cList, vics, m):
         chosen_vic = target_victim(c, cList, vics[1], m)
 
         # if we think we can hit this alternate target
-        if chosen_vic != 0:
+        if chosen_vic != 0 and m.action == "throw":
             c.last_victim = chosen_vic
             cList[chosen_vic].targeted_by = i
 
@@ -912,8 +928,9 @@ def target_or_alternate_move(c, i, cList, smb_list, m, possible_m):
                 # hitting someone, but if we hit someone else, they too 
                 # will be dazed for 4 turns.
                 if cList[chosen_vic].targeted_by == -1:
-                    c.last_victim = chosen_vic
-                    cList[chosen_vic].targeted_by = i
+                    if m.action == "throw":
+                        c.last_victim = chosen_vic
+                        cList[chosen_vic].targeted_by = i
                 else:
                     if possible_m.action != "idle":
                         m.action = possible_m.action
@@ -928,8 +945,9 @@ def target_or_alternate_move(c, i, cList, smb_list, m, possible_m):
 
                     # if we think we can hit this alternate target
                     if chosen_vic != 0:
-                        c.last_victim = chosen_vic
-                        cList[chosen_vic].targeted_by = i
+                        if m.action == "throw":
+                            c.last_victim = chosen_vic
+                            cList[chosen_vic].targeted_by = i
                     else:
                         m.action = possible_m.action
                         m.dest = possible_m.dest
