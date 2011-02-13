@@ -1067,10 +1067,10 @@ def determine_special_action(c, cList, smb_list, m):
                     # went around once.  Now primary mission should be snowmen!
                     c.completed_circuit = True
 
-                if c.target_index == 3:
+                if c.target_index == 3 and smb_seen == 0:
                     c.got_four_targets = True
-
-                c.next_target()
+                else:
+                    c.next_target()
 
     else:
         if c.pos != c.target:
@@ -1271,7 +1271,7 @@ while turnNum >= 0:
                 determine_action_for_child(c, i, cList, smb_list, m)
             else:
                 determine_special_action(c, cList, smb_list, m)
-                sys.stderr.write( "%d %d\n" % ( c.target.x, c.target.y ) )
+                #sys.stderr.write( "%d %d\n" % ( c.target.x, c.target.y ) )
 
         # avoid an attempt to move into the same space during this turn.
         # avoid drop attempts to the same location!  one has to idle!!
