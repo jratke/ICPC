@@ -416,22 +416,87 @@ def victims_in_range(c, cList):
         j += 1
     return vics
 
-# if the victims are dazed, we should aim for the one that is the least dazed.
-# aim for closest, as we are likely to hit it.
-# if a victim is holding a medium or large snowball target them to disrupt them 
-#  .. also likely to be standing still.
+def what_to_do(c, cList, vics, m):
 
-# snowball 0(none) 1(small) 2(med)
-# dazed 0 .. 4
-# dsq (distance) ....
-
-def choose_victim(vics):
     vics.sort(lambda x,y:cmp(x[2],y[2])) # dsq 
-    vics.sort(lambda x,y:cmp(x[4],y[4])) # dazed
-    #vics.sort(lambda x,y:cmp(x[3],y[3]), reverse=True)  # holding.  
-    return vics[0]
 
-def target_victim(c, cList, vic, m):
+    if c.holding == HOLD_S3:
+        target_best(c, cList, vics, m)
+    else:
+        # Not holding three snowballs, so we could catch
+        threats = 0
+        threat = -1
+        for v in vics:
+            cindex = v[6]
+            if (cList[cindex].standing and cList[cindex].dazed == 0 and 
+                cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3 and
+                dsq <= 8*8):
+                threat = cindex
+                threats += 1
+
+        if threats == 0:
+            target_best(c, cList, vics, m)
+        elif threats == 1:
+            m.action = "catch"
+            m.dest = Point( cList[threat].pos.x,
+                            cList[threat].pos.y)
+        else:
+            # two or more threats... hmm.. fight or flee! Could crouch or run.
+            target_best(c, cList, vics, m)
+            # if I can't hit them, perhaps they can't hit me...
+
+def throw_at_victim(c, cList, v, m):
+    m.action = "throw"
+    # throw past the victim, so we will probably hit them
+    # before the snowball falls into the snow.
+    m.dest = Point( c.pos.x + v[0] * 2,
+                    c.pos.y + v[1] * 2 )
+    
+    # now this guy is targeting that one.
+    c.last_victim = v[6]
+    cList[v[6]].targeted_by = c.index
+
+
+def target_best(c, cList, vics, m):
+    vics.sort(lambda x,y:cmp(x[4],y[4])) # dazed
+    
+    # "Can Hit" array.
+    # -1 = not in contention. 0 = in contention but haven't checked if this child, c, can hit yet.. 
+    # 1 = in contention, can hit,  2 = in contention, can't hit
+    ch = [-1,-1,-1,-1,-1,-1,-1,-1] 
+    targeting = 0
+
+    for v in vics:
+        ch[v[6]] = 0
+        # if they are not already targeted.
+        if cList[v[6]].targeted_by == -1:
+
+            if can_hit(c, cList, v):
+                
+                ch[v[6]] = 1
+    
+                # if dazed two or less, target this one...
+                if v[4] <= 2:
+                    targeting = v[6]
+                    throw_at_victim(c, cList, v, m)
+                    break
+            else:
+                ch[v[6]] = 2
+
+    if targeting == 0:
+        # check if we can hit ones we didn't check yet.
+        for v in vics:
+
+            if ch[v[6]] == 1:  # already checked, and can hit them...
+                throw_at_victim(c, cList, v, m)
+                break
+            elif ch[v[6]] == 0:  # haven't checked yet
+                if can_hit(c, cList, v):
+                    throw_at_victim(c, cList, v, m)
+                    break
+            # else, 2, checked and can't hit.
+
+def can_hit(c, cList, vic):
     global ground
     global height
     global child_at
@@ -443,7 +508,6 @@ def target_victim(c, cList, vic, m):
     else: vic_height = 6
 
     take_the_shot = False
-    should_catch = False
 
     # for each step 1 to steps
     for s in range(1,steps+1):
@@ -464,7 +528,7 @@ def target_victim(c, cList, vic, m):
             if cList[cindex].standing:
                 break
             else:
-                # height = 6
+                # height = 6, they might stand up in this turn, so don't risk throwing
                 if cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3:
                     break
                 if height[atx][aty] <= 6:
@@ -476,14 +540,6 @@ def target_victim(c, cList, vic, m):
             child_height = 6
             if cList[cindex].standing:
                 child_height = 9
-
-            # determine if we should catch
-            if (cList[cindex].standing and cList[cindex].dazed == 0 and 
-                cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3 and
-                dsq <= 8*8 and
-                (c.holding == HOLD_EMPTY or c.holding == HOLD_S1 or c.holding == HOLD_S2)):
-                should_catch = True
-                break
 
             if height_at_step_s <= child_height:
                 take_the_shot = True
@@ -497,21 +553,10 @@ def target_victim(c, cList, vic, m):
                ground[atx][aty] != GROUND_SMB)))):
             break
 
-    if should_catch:
-        m.action = "catch"
-        m.dest = Point( c.pos.x + vic[0],
-                        c.pos.y + vic[1] )
-        return vic[6]
-
-    elif take_the_shot:
-        m.action = "throw"
-        # throw past the victim, so we will probably hit them
-        # before the snowball falls into the snow.
-        m.dest = Point( c.pos.x + vic[0] * 2,
-                        c.pos.y + vic[1] * 2 )
-        return vic[6]
+    if take_the_shot:
+        return True
     else:
-        return 0
+        return False
 
 
 def find_average_and_move(c, locations, m):
@@ -818,21 +863,6 @@ def finish_nearby_snowman_or_stand(c, m):
             else:
                 m.action = "stand"
 
-
-# couldn't hit that one, or someone else on the team is 
-# already targeting him.
-#
-def try_for_alternate_victim(c, i, cList, vics, m):
-    if len(vics) > 1:
-        # can we target the second victim in the list
-        chosen_vic = target_victim(c, cList, vics[1], m)
-
-        # if we think we can hit this alternate target
-        if chosen_vic != 0 and m.action == "throw":
-            c.last_victim = chosen_vic
-            cList[chosen_vic].targeted_by = i
-
-
 # Fill in move, m, with a _potential_ action and destination!
 #
 def snowman_or_move_action(c, smb_list, m):
@@ -912,49 +942,12 @@ def target_or_alternate_move(c, i, cList, smb_list, m, possible_m):
     # find potential victims.
     vics = victims_in_range(c, cList)
     if len(vics) > 0:
-        # choose the best one.
-        vic = choose_victim(vics)
-
-        # if the victim is already dazed 3 or more, then we might as 
-        # well do something else
-        if vic[4] >= 3 and possible_m.action != "idle":
+        what_to_do(c, cList, vics, m)
+        # might be nothing...
+        if m.action == "idle":
             m.action = possible_m.action
             m.dest = possible_m.dest
-        else:
-            # set action to throw and set the dest.
-            chosen_vic = target_victim(c, cList, vic, m)
-            if chosen_vic != 0:
-                # If same victim targeted by someone else in 
-                # this turn, then perhaps we should do something 
-                # else, like target a different victim. It's best to target
-                # someone else because we still want to get 10 points for
-                # hitting someone, but if we hit someone else, they too 
-                # will be dazed for 4 turns.
-                if cList[chosen_vic].targeted_by == -1:
-                    if m.action == "throw":
-                        c.last_victim = chosen_vic
-                        cList[chosen_vic].targeted_by = i
-                else:
-                    if possible_m.action != "idle":
-                        m.action = possible_m.action
-                        m.dest = possible_m.dest
-                    else:
-                        try_for_alternate_victim(c, i, cList, vics, m)
-            else:
-                # can't hit that one, are there more?
-                if len(vics) > 1:
-                    # can we target the second victim in the list?
-                    chosen_vic = target_victim(c, cList, vics[1], m)
 
-                    # if we think we can hit this alternate target
-                    if chosen_vic != 0:
-                        if m.action == "throw":
-                            c.last_victim = chosen_vic
-                            cList[chosen_vic].targeted_by = i
-                    else:
-                        m.action = possible_m.action
-                        m.dest = possible_m.dest
-                        
 
 def alternate_or_move(c, cList, m, possible_m):
     if possible_m.action != "idle":
@@ -990,7 +983,7 @@ def determine_action_for_child(c, i, cList, smb_list, m):
 
         if m.action == "idle":
             target_or_alternate_move(c, i, cList, smb_list, m, possible_m)
-                                
+
         if m.action == "idle":
             alternate_or_move(c, cList, m, possible_m)
 
