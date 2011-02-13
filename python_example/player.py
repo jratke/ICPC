@@ -781,6 +781,21 @@ def pickup_if_no_one_else_will(c, i, cList, sx, sy, m):
                 # but our move checking at the end should prevent that.
                 valid_random_movement(c,m)
 
+def someones_going_to_throw_at_me(c, cList):
+    # find any threats!
+    # return the threat!
+    j = CCOUNT
+    while j < CCOUNT * 2:
+        if cList[ j ].pos.x >= 0:
+            dx = cList[ j ].pos.x - c.pos.x
+            dy = cList[ j ].pos.y - c.pos.y
+
+            if (dx*dx+dy*dy <= 64 and
+                cList[j].standing and
+                cList[j].dazed == 0 and
+                (cList[j].holding == HOLD_S1 or cList[j].holding == HOLD_S2 or cList[j].holding == HOLD_S3)):
+                return (cList[j].pos.x, cList[j].pos.y)
+    return (-1,-1)
 
 def acquire_small_snowball(i, c, cList, m):
     # Crush into a snowball, if we have snow.
@@ -821,11 +836,19 @@ def acquire_small_snowball(i, c, cList, m):
                 if sx >= 0:
                     moveToward(c, Point(sx,sy), m)
 
+                else:
+                    # the fastest way to get a snowball is to catch one 
+                    # that someone is going to throw!
+                    # Tried to do this, but it was too slow. :-(
+                    #sx, sy = someones_going_to_throw_at_me(c, cList)
+                    #if sx >= 0:
+                    #    m.action = "catch"
+                    #    m.dest = Point(sx,sy)
+                    pass
+
         # if not going to crawl (or run) somewhere or pick up a snowball, of some sort...
         if m.action == "idle":
-            sx, sy = look_for(c, blue_snowman)
-            if sy == -1:
-                sx, sy = look_for_small_snowball(c)
+            sx, sy = look_for_small_snowball(c)
 
             if sx == -1:
                 sx, sy = look_for_powdered_snow(c)
