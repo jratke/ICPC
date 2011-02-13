@@ -339,13 +339,13 @@ def moveToward( c, target, m ):
             py = c.pos.y + clamp( target.y - c.pos.y, -1, 1 )
             moveOrRandom(c,px,py,m)
 
-def find_child_at(x1,y1,cList):
-    i = 0
-    while i < CCOUNT * 2:
-        if cList[i].pos.x == x1 and cList[i].pos.y == y1:
-            return i
-    return -1
- 
+#def find_child_at(x1,y1,cList):
+#    i = 0
+#    while i < CCOUNT * 2:
+#        if cList[i].pos.x == x1 and cList[i].pos.y == y1:
+#            return i
+#    return -1
+
 def random_movement(c):
     if c.standing:
         options = [(-2,0),(-1,0,),(-1,-1),(0,2),(0,1),(1,1),(1,0),(2,0),(1,-1),(0,-1),(0,-2),(-1,-1)]
@@ -459,7 +459,7 @@ def target_victim(c, cList, vic, m):
             break
 
         if ground[atx][aty] == GROUND_CHILD_RED:
-            cindex = find_child_at(atx, aty, cList)
+            cindex = child_at[(atx, aty)]
             if cList[cindex].standing:
                 break
             else:
@@ -470,7 +470,8 @@ def target_victim(c, cList, vic, m):
                     break
 
         if ground[atx][aty] == GROUND_CHILD_BLUE:
-            cindex = find_child_at(atx, aty, cList)
+            cindex = child_at[(atx, aty)]
+
             child_height = 6
             if cList[cindex].standing:
                 child_height = 9
@@ -478,7 +479,8 @@ def target_victim(c, cList, vic, m):
             # determine if we should catch
             if (cList[cindex].standing and cList[cindex].dazed == 0 and 
                 cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3 and
-                dsq <= 8*8):
+                dsq <= 8*8 and
+                (c.holding == HOLD_EMPTY or c.holding == HOLD_S1 or c.holding == HOLD_S2)):
                 should_catch = True
                 break
 
@@ -1192,6 +1194,9 @@ height = []
 # Contents of each cell.
 ground = []
 
+# locations of children by x,y coordinates, for faster lookup.
+child_at = {}
+
 # Allocate the whole field.  Is there a better way to do this?
 for i in range( SIZE ):
     height.append( [ 0 ] * SIZE )
@@ -1234,6 +1239,7 @@ while turnNum >= 0:
                         smb_seen += 1
                 
     # Read the states of all the children.
+    child_at.clear()
     for i in range( CCOUNT * 2 ):
         c = cList[ i ]
         
@@ -1246,6 +1252,9 @@ while turnNum >= 0:
             # Record the child's location.
             c.pos.x = string.atoi( tokens[ 0 ] )
             c.pos.y = string.atoi( tokens[ 1 ] )
+
+            child_at[(c.pos.x, c.pos.y)] = i
+
             if i >= CCOUNT:
                 c.last_known.set(c.pos.x, c.pos.y)
                 c.targeted_by = -1
