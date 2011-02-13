@@ -411,7 +411,7 @@ def victims_in_range(c, cList):
             #steps = max(dx,dy)
             dsq = dx * dx + dy * dy
 
-            if dsq < 12 * 12:
+            if dsq <= 12 * 12:
                 vics.append((dx,dy,dsq,cList[j].holding,cList[j].dazed,cList[j].standing,j))
         j += 1
     return vics
@@ -429,7 +429,7 @@ def what_to_do(c, cList, vics, m):
         for v in vics:
             cindex = v[6]
             if (cList[cindex].standing and cList[cindex].dazed == 0 and 
-                cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3 and
+                (cList[cindex].holding == HOLD_S1 or cList[cindex].holding == HOLD_S2 or cList[cindex].holding == HOLD_S3) and
                 dsq <= 8*8):
                 threat = cindex
                 threats += 1
@@ -987,6 +987,20 @@ def determine_action_for_child(c, i, cList, smb_list, m):
         if m.action == "idle":
             alternate_or_move(c, cList, m, possible_m)
 
+def reached_target_now_what(c, smb_seen, m):
+    c.reached_target = True
+
+    # if third or fourth target, and no blue snowmen seen yet, plant ours.
+    if (((c.target_index == 2 or c.target_index == 3) and smb_seen == 0) or
+        not c.completed_circuit):
+        m.action = "crouch"
+        c.build_stage = BUILD_STAGE_BASE
+    else:
+        if c.target_index == 3 and smb_seen == 0:
+            c.got_four_targets = True
+        else:
+            c.next_target()
+
 def determine_special_action(c, cList, smb_list, m):
     if c.reached_target == True:
         # Go look for close blue snowman, or snowman base (large),
@@ -1155,21 +1169,18 @@ def determine_special_action(c, cList, smb_list, m):
                                             moveToward( c, c.target, m )
                                 else:
                                     if c.dazed == 0:
-                                        moveToward( c, c.target, m )
+                                        
+                                        # If I'm within one of the target and can't move to it anyway,
+                                        #  then let's just say we reached it.
+                                        dx = c.target.x - c.pos.x
+                                        dy = c.target.y - c.pos.y
+                                        if ((dx == 1 or dx == -1) and (dy == 1 or dy == -1) and
+                                            not can_move(c.target.x, c.target.y)):
+                                            reached_target_now_what(c, smb_seen, m)
+                                        else:
+                                            moveToward( c, c.target, m )
         else:
-            c.reached_target = True
-
-            # if third or fourth target, and no blue snowmen seen yet, plant ours.
-            if (((c.target_index == 2 or c.target_index == 3) and smb_seen == 0) or
-                not c.completed_circuit):
-                m.action = "crouch"
-                c.build_stage = BUILD_STAGE_BASE
-            else:
-                if c.target_index == 3 and smb_seen == 0:
-                    c.got_four_targets = True
-                else:
-                    c.next_target()
-
+            reached_target_now_what(c, smb_seen, m)
 
 ########################################################################################
 
