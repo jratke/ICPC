@@ -2,7 +2,10 @@
 # Icy Projectile Challenge
 # Player code by John Ratke
 # Based on hunter.py example program
-#
+# 
+# To run, use:
+#  java -jar icypc.jar -player pipe 2 python python_example/player.py \
+#                      -player java -cp java_example Planter -map maps/map5.txt
 
 import random
 import sys
@@ -397,8 +400,7 @@ def valid_random_movement(c, m):
 
 
 # come up with a list of potential victims... 
-# current criteria is just "in range" 
-# TODO: consider the path to the target. If it is blocked, it's not a good target...
+#  criteria is just "in range" and we will find out if we can hit them later.
 def victims_in_range(c, cList):
     vics = []
 
@@ -408,7 +410,6 @@ def victims_in_range(c, cList):
             # We know where this child is, see if it's not too far away.
             dx = cList[ j ].pos.x - c.pos.x
             dy = cList[ j ].pos.y - c.pos.y
-            #steps = max(dx,dy)
             dsq = dx * dx + dy * dy
 
             if dsq <= 12 * 12:
@@ -517,9 +518,6 @@ def can_hit(c, cList, vic):
         atx = c.pos.x + int(round( float( s * ( vic[0] * 2 ) )/float(steps) ))
         aty = c.pos.y + int(round( float( s * ( vic[1] * 2 ) )/float(steps) ))
 
-        # have to do... 
-        # if ground[atx][aty] == child (red or blue).. then find out which one
-        # perhaps it is the one we are targeting, vic[6], but perhaps not.
         if ground[atx][aty] == GROUND_TREE:
             break
 
@@ -535,6 +533,7 @@ def can_hit(c, cList, vic):
                     break
 
         if ground[atx][aty] == GROUND_CHILD_BLUE:
+            # perhaps it is the one we are targeting, vic[6], but perhaps not.
             cindex = child_at[(atx, aty)]
 
             child_height = 6
@@ -795,6 +794,7 @@ def someones_going_to_throw_at_me(c, cList):
                 cList[j].dazed == 0 and
                 (cList[j].holding == HOLD_S1 or cList[j].holding == HOLD_S2 or cList[j].holding == HOLD_S3)):
                 return (cList[j].pos.x, cList[j].pos.y)
+        j += 1
     return (-1,-1)
 
 def acquire_small_snowball(i, c, cList, m):
@@ -839,12 +839,10 @@ def acquire_small_snowball(i, c, cList, m):
                 else:
                     # the fastest way to get a snowball is to catch one 
                     # that someone is going to throw!
-                    # Tried to do this, but it was too slow. :-(
-                    #sx, sy = someones_going_to_throw_at_me(c, cList)
-                    #if sx >= 0:
-                    #    m.action = "catch"
-                    #    m.dest = Point(sx,sy)
-                    pass
+                    sx, sy = someones_going_to_throw_at_me(c, cList)
+                    if sx >= 0:
+                        m.action = "catch"
+                        m.dest = Point(sx,sy)
 
         # if not going to crawl (or run) somewhere or pick up a snowball, of some sort...
         if m.action == "idle":
@@ -874,6 +872,8 @@ def finish_nearby_snowman_or_stand(c, m):
         m.action = "drop"
         m.dest = Point(sx,sy)
     else:
+        # TODO: If we can hit somebody without standing up, then try that!
+
         # Stand up if the child is armed.
         if not c.standing:
 
@@ -1133,6 +1133,7 @@ def determine_special_action(c, cList, smb_list, m):
                         pickup_if_no_one_else_will(c, 2, cList, sx, sy, m)
                     else:
                         # might have powdered snow that I need to get rid of now...
+                        # TODO: if I have a snow ball and there is a bad guy, throw it at him.
                         sx,sy = look_for(c, can_drop_small)
                         if sx >= 0:
                             m.action = "drop"
